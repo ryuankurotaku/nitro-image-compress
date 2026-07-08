@@ -1,7 +1,7 @@
 import { compress as nitroCompress, getImageInfo } from 'nitro-image-compress';
 import ImageResizer from 'react-native-image-resizer';
 import { Image as RNCompressor } from 'react-native-compressor';
-import type { BenchmarkResult, ImageSource } from './types.js';
+import type { BenchmarkResult, ImageSource } from './types';
 
 /**
  * Standard compression parameters used across all benchmarks.

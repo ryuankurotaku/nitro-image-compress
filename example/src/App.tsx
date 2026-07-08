@@ -7,7 +7,7 @@ import {
   ResizerScreen,
   CompressorScreen,
   CompareScreen,
-} from './screens/index.js';
+} from './screens';
 
 const Tab = createBottomTabNavigator();
 

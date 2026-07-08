@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { getImageInfo } from 'nitro-image-compress';
-import { BenchmarkChart, ResultCard, ImageSourceInfo } from '../components/index.js';
-import { runBenchmark } from '../utils/index.js';
-import type { BenchmarkResult, ImageSource } from '../utils/index.js';
+import { BenchmarkChart, ResultCard, ImageSourceInfo } from '../components';
+import { runBenchmark } from '../utils';
+import type { BenchmarkResult, ImageSource } from '../utils';
 
 export const CompareScreen: React.FC = () => {
   const [source, setSource] = useState<ImageSource | null>(null);

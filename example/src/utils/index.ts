@@ -1,2 +1,2 @@
-export { runBenchmark } from './benchmark.js';
-export type { BenchmarkResult, ImageSource } from './types.js';
+export { runBenchmark } from './benchmark';
+export type { BenchmarkResult, ImageSource } from './types';

@@ -1,3 +1,3 @@
-export { BenchmarkChart } from './BenchmarkChart.js';
-export { ResultCard } from './ResultCard.js';
-export { ImageSourceInfo } from './ImageSourceInfo.js';
+export { BenchmarkChart } from './BenchmarkChart';
+export { ResultCard } from './ResultCard';
+export { ImageSourceInfo } from './ImageSourceInfo';

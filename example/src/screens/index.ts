@@ -1,4 +1,4 @@
-export { NitroScreen } from './NitroScreen.js';
-export { ResizerScreen } from './ResizerScreen.js';
-export { CompressorScreen } from './CompressorScreen.js';
-export { CompareScreen } from './CompareScreen.js';
+export { NitroScreen } from './NitroScreen';
+export { ResizerScreen } from './ResizerScreen';
+export { CompressorScreen } from './CompressorScreen';
+export { CompareScreen } from './CompareScreen';
