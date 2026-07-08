@@ -1,5 +1,5 @@
 {
-  "name": "nitro-image-compress",
+  "name": "react-native-nitro-image-compressor",
   "version": "0.1.0",
   "description": "High-performance on-device image compression for React Native using Nitro Modules",
   "main": "lib/commonjs/index",
@@ -47,15 +47,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/user/nitro-image-compress.git",
-    "directory": "packages/nitro-image-compress"
+    "url": "git+https://github.com/user/react-native-nitro-image-compressor.git",
+    "directory": "packages/react-native-nitro-image-compressor"
   },
   "author": "Your Name <your@email.com> (https://github.com/user)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/user/nitro-image-compress/issues"
+    "url": "https://github.com/user/react-native-nitro-image-compressor/issues"
   },
-  "homepage": "https://github.com/user/nitro-image-compress#readme",
+  "homepage": "https://github.com/user/react-native-nitro-image-compressor#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

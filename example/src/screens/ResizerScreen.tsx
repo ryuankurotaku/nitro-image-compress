@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import ImageResizer from 'react-native-image-resizer';
-import { getImageInfo } from 'nitro-image-compress';
-import type { ImageInfo } from 'nitro-image-compress';
+import { getImageInfo } from 'react-native-nitro-image-compressor';
+import type { ImageInfo } from 'react-native-nitro-image-compressor';
 
 interface ResizerResult {
   uri: string;

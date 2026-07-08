@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { getImageInfo } from 'nitro-image-compress';
+import { getImageInfo } from 'react-native-nitro-image-compressor';
 import { BenchmarkChart, ResultCard, ImageSourceInfo } from '../components';
 import { runBenchmark } from '../utils';
 import type { BenchmarkResult, ImageSource } from '../utils';

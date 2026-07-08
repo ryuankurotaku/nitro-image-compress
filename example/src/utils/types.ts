@@ -21,7 +21,7 @@ export interface BenchmarkResult {
 
 /**
  * Metadata about the source image selected for benchmarking.
- * Populated using nitro-image-compress's synchronous `getImageInfo()`.
+ * Populated using react-native-nitro-image-compressor's synchronous `getImageInfo()`.
  */
 export interface ImageSource {
   /** Local file URI of the selected image */

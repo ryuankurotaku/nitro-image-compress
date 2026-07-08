@@ -2,10 +2,10 @@ Pod::Spec.new do |s|
   s.name         = "NitroImageCompress"
   s.version      = "0.1.0"
   s.summary      = "High-performance on-device image compression via Nitro Modules"
-  s.homepage     = "https://github.com/user/nitro-image-compress"
+  s.homepage     = "https://github.com/user/react-native-nitro-image-compressor"
   s.license      = { :type => "MIT", :file => "LICENSE" }
   s.author       = "Your Name"
-  s.source       = { :git => "https://github.com/user/nitro-image-compress.git", :tag => s.version }
+  s.source       = { :git => "https://github.com/user/react-native-nitro-image-compressor.git", :tag => s.version }
 
   s.platforms    = { :ios => "16.0" }
   s.swift_version = "5.10"

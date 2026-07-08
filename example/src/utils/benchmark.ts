@@ -1,4 +1,4 @@
-import { compress as nitroCompress, getImageInfo } from 'nitro-image-compress';
+import { compress as nitroCompress, getImageInfo } from 'react-native-nitro-image-compressor';
 import ImageResizer from 'react-native-image-resizer';
 import { Image as RNCompressor } from 'react-native-compressor';
 import type { BenchmarkResult, ImageSource } from './types';
@@ -18,7 +18,7 @@ const MAX_HEIGHT = 1080;   // Full HD height cap
  * Results include wall-clock timing via `performance.now()`.
  *
  * Libraries tested:
- * 1. **nitro-image-compress** — JSI/Nitro (this library)
+ * 1. **react-native-nitro-image-compressor** — JSI/Nitro (this library)
  * 2. **react-native-image-resizer** — Old bridge architecture
  * 3. **react-native-compressor** — Native bridge
  *
@@ -39,7 +39,7 @@ export const runBenchmark = async (
 };
 
 /**
- * Benchmarks nitro-image-compress (this library).
+ * Benchmarks react-native-nitro-image-compressor (this library).
  * Uses JSI for near-zero overhead function calls.
  */
 const benchmarkNitro = async (uri: string): Promise<BenchmarkResult> => {
@@ -54,7 +54,7 @@ const benchmarkNitro = async (uri: string): Promise<BenchmarkResult> => {
     const duration = performance.now() - start;
 
     return {
-      library: 'nitro-image-compress',
+      library: 'react-native-nitro-image-compressor',
       duration: Math.round(duration),
       outputSize: result.size,
       outputWidth: result.width,
@@ -63,7 +63,7 @@ const benchmarkNitro = async (uri: string): Promise<BenchmarkResult> => {
     };
   } catch (error) {
     return {
-      library: 'nitro-image-compress',
+      library: 'react-native-nitro-image-compressor',
       duration: 0,
       outputSize: 0,
       outputWidth: 0,

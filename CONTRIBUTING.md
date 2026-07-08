@@ -1,11 +1,11 @@
-# Contributing to nitro-image-compress
+# Contributing to react-native-nitro-image-compressor
 
 ## Project Structure
 
 ```
-nitro-image-compress/
+react-native-nitro-image-compressor/
 ├── packages/
-│   └── nitro-image-compress/       # The npm-published library
+│   └── react-native-nitro-image-compressor/       # The npm-published library
 │       ├── src/                     # TypeScript source (barrel → compress → types)
 │       ├── ios/                     # Swift native implementation (UIImage + ImageIO)
 │       ├── android/                 # Kotlin native implementation (id.zelory:compressor)
@@ -51,7 +51,7 @@ bun run typecheck
 # Lint + auto-fix with Biome
 bun run lint
 
-# Build the library (outputs to packages/nitro-image-compress/lib/)
+# Build the library (outputs to packages/react-native-nitro-image-compressor/lib/)
 bun run build
 
 # Run Nitro codegen (generates C++ JSI bindings from nitrogen/ spec)

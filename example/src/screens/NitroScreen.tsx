@@ -10,8 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { compress, getImageInfo } from 'nitro-image-compress';
-import type { CompressResult, ImageInfo } from 'nitro-image-compress';
+import { compress, getImageInfo } from 'react-native-nitro-image-compressor';
+import type { CompressResult, ImageInfo } from 'react-native-nitro-image-compressor';
 
 export const NitroScreen: React.FC = () => {
   const [sourceUri, setSourceUri] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export const NitroScreen: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>⚡ nitro-image-compress</Text>
+        <Text style={styles.title}>⚡ react-native-nitro-image-compressor</Text>
         <Text style={styles.badge}>JSI / Nitro Modules</Text>
       </View>
 

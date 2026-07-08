@@ -1,6 +1,6 @@
-# nitro-image-compress
+# react-native-nitro-image-compressor
 
-**nitro-image-compress** is a high-performance on-device image compression library for React Native, built with [Nitro Modules](https://nitro.margelo.com)!
+**react-native-nitro-image-compressor** is a high-performance on-device image compression library for React Native, built with [Nitro Modules](https://nitro.margelo.com)!
 
 - Powered by [Nitro Modules](https://nitro.margelo.com) for direct JSI calls — no bridge overhead! 🔥
 - **10-50x faster** than JS-based compression solutions ⚡
@@ -13,7 +13,7 @@
 - Memory-efficient decoding on Android (inSampleSize) 🤖
 
 ```ts
-import { compress, getImageInfo } from 'nitro-image-compress';
+import { compress, getImageInfo } from 'react-native-nitro-image-compressor';
 
 const info = getImageInfo('file:///photo.jpg');      // Sync! ~0.3ms
 const result = await compress('file:///photo.jpg', {
@@ -27,16 +27,16 @@ const result = await compress('file:///photo.jpg', {
 
 ## Installation
 
-Install [nitro-image-compress](https://www.npmjs.com/package/nitro-image-compress) from npm:
+Install [react-native-nitro-image-compressor](https://www.npmjs.com/package/react-native-nitro-image-compressor) from npm:
 
 ```sh
-npm i nitro-image-compress
+npm i react-native-nitro-image-compressor
 npm i react-native-nitro-modules
 cd ios && pod install
 ```
 
 > [!NOTE]
-> nitro-image-compress requires React Native ≥ 0.85 and react-native-nitro-modules ≥ 0.18.0.
+> react-native-nitro-image-compressor requires React Native ≥ 0.85 and react-native-nitro-modules ≥ 0.18.0.
 > Both iOS 16+ and Android SDK 26+ are supported.
 
 ## Usage
@@ -44,7 +44,7 @@ cd ios && pod install
 ### Compressing an Image
 
 ```ts
-import { compress } from 'nitro-image-compress';
+import { compress } from 'react-native-nitro-image-compressor';
 
 const result = await compress('file:///path/to/photo.jpg', {
   quality: 0.7,        // 0.0–1.0, default 0.7
@@ -62,7 +62,7 @@ console.log(result.size);    // 204800 (bytes)
 ### Getting Image Info (Synchronous)
 
 ```ts
-import { getImageInfo } from 'nitro-image-compress';
+import { getImageInfo } from 'react-native-nitro-image-compressor';
 
 // This is SYNCHRONOUS via JSI — no await needed!
 const info = getImageInfo('file:///path/to/photo.jpg');
@@ -148,7 +148,7 @@ interface ImageInfo {
 
 Benchmarked on iPhone 15 Pro, 12MP photo (4032×3024, 8.2MB):
 
-| Operation | nitro-image-compress | react-native-image-resizer | react-native-compressor |
+| Operation | react-native-nitro-image-compressor | react-native-image-resizer | react-native-compressor |
 |-----------|---------------------|---------------------------|------------------------|
 | Compress to 1920px JPEG | **18ms** | 142ms | 96ms |
 | Get image info | **0.3ms** (sync) | 12ms (async) | N/A |
@@ -217,8 +217,8 @@ bun example android      # Run on Android emulator
 ## Project Structure
 
 ```
-nitro-image-compress/
-├── packages/nitro-image-compress/   # The published npm package
+react-native-nitro-image-compressor/
+├── packages/react-native-nitro-image-compressor/   # The published npm package
 │   ├── src/                         # TypeScript source
 │   │   ├── index.ts                 # Barrel exports (no logic)
 │   │   ├── compress.ts              # compress() and getImageInfo()

@@ -3,7 +3,7 @@
 # release.sh — Publishes the library to NPM and creates a GitHub release.
 #
 # Flow:
-# 1. Publishes `nitro-image-compress` to NPM (copies root README for npm page)
+# 1. Publishes `react-native-nitro-image-compressor` to NPM (copies root README for npm page)
 # 2. Creates a git bump commit, tag, and GitHub release via release-it
 #
 # Usage:
@@ -22,8 +22,8 @@ set -e
 echo "Starting the release process..."
 echo "Provided options: $@"
 
-echo "Publishing 'nitro-image-compress' to NPM"
-cd packages/nitro-image-compress
+echo "Publishing 'react-native-nitro-image-compressor' to NPM"
+cd packages/react-native-nitro-image-compressor
 cp ../../README.md README.md
 bun release $@
 rm README.md
@@ -32,4 +32,4 @@ echo "Creating a Git bump commit and GitHub release"
 cd ../..
 bun run release-it $@
 
-echo "Successfully released nitro-image-compress!"
+echo "Successfully released react-native-nitro-image-compressor!"

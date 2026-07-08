@@ -1,12 +1,12 @@
 /**
- * @module nitro-image-compress
+ * @module react-native-nitro-image-compressor
  *
  * High-performance on-device image compression for React Native.
  * Uses Nitro Modules (JSI) for synchronous and near-native performance.
  *
  * @example
  * ```ts
- * import { compress, getImageInfo } from 'nitro-image-compress';
+ * import { compress, getImageInfo } from 'react-native-nitro-image-compressor';
  *
  * // Sync metadata lookup (~0.3ms)
  * const info = getImageInfo('file:///photo.jpg');
