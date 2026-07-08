@@ -3,18 +3,19 @@ lib/
 dist/
 .DS_Store
 *.tsbuildinfo
+*.lockb
 
 # iOS
-ios/Pods/
-ios/build/
+**/ios/Pods/
+**/ios/build/
 
 # Android
-android/build/
-android/.gradle/
+**/android/build/
+**/android/.gradle/
 
-# Example
-example/node_modules/
-example/ios/Pods/
-example/ios/build/
-example/android/build/
-example/android/.gradle/
+# Bun
+bun.lock
+
+# Build artifacts
+packages/*/lib/
+nitrogen/generated/

@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "outDir": "./dist"
   },
-  "include": ["src/**/*", "App.tsx"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "index.js"],
+  "exclude": ["node_modules", "ios", "android"]
 }

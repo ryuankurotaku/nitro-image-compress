@@ -1,69 +1,97 @@
 {
-  "name": "nitro-image-compress",
+  "name": "nitro-image-compress-monorepo",
   "version": "0.1.0",
-  "description": "High-performance on-device image compression for React Native using Nitro Modules",
-  "type": "module",
-  "main": "lib/commonjs/index.js",
-  "module": "lib/module/index.js",
-  "types": "lib/typescript/index.d.ts",
-  "react-native": "src/index.ts",
-  "source": "src/index.ts",
-  "files": [
-    "src",
-    "lib",
-    "ios",
-    "android",
-    "nitrogen",
-    "nitro.json",
-    "nitro-image-compress.podspec",
-    "!**/__tests__",
-    "!**/__fixtures__",
-    "!**/__mocks__"
+  "private": true,
+  "workspaces": [
+    "packages/nitro-image-compress",
+    "example"
   ],
   "scripts": {
-    "build": "bob build",
-    "typescript": "tsc --project config/tsconfig.json --noEmit",
-    "lint": "eslint",
-    "codegen": "nitro-codegen"
+    "build": "bun run --cwd packages/nitro-image-compress build",
+    "specs": "bun run build && bun run --cwd packages/nitro-image-compress specs",
+    "bootstrap": "bun i && bun run build && cd example && bundle install && bun pods",
+    "typecheck": "bun --filter=\"**\" typecheck",
+    "lint": "biome check --write",
+    "lint-ci": "biome check",
+    "format": "biome format --write",
+    "clean": "git clean -dfx",
+    "release": "./scripts/release.sh",
+    "lib": "bun --cwd packages/nitro-image-compress",
+    "example": "bun --cwd example"
   },
-  "keywords": [
-    "react-native",
-    "nitro",
-    "image",
-    "compress",
-    "resize",
-    "jsi"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/user/nitro-image-compress"
-  },
-  "author": "Your Name",
-  "license": "MIT",
   "devDependencies": {
-    "react": "^19.2.3",
-    "react-native": "^0.85.3",
-    "react-native-nitro-modules": "^0.18.0",
-    "nitro-codegen": "^0.18.0",
-    "typescript": "^5.5.0",
-    "react-native-builder-bob": "^0.30.0",
-    "eslint": "^9.0.0",
-    "@eslint/js": "^9.0.0",
-    "typescript-eslint": "^8.0.0",
-    "globals": "^15.0.0"
+    "@biomejs/biome": "^2.4.0",
+    "@release-it-plugins/workspaces": "^5.0.3",
+    "@release-it/bumper": "^7.0.5",
+    "@release-it/conventional-changelog": "^11.0.0",
+    "@tsconfig/react-native": "^3.0.9",
+    "@types/react": "^19.2.15",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-builder-bob": "^0.41.0",
+    "release-it": "^19.0.4",
+    "typescript": "^5.5.0"
   },
-  "peerDependencies": {
-    "react": ">=19.0.0",
-    "react-native": ">=0.85.0",
-    "react-native-nitro-modules": ">=0.18.0"
+  "overrides": {
+    "@babel/preset-env": "^7.29.7",
+    "@babel/plugin-transform-modules-systemjs": "^7.29.7"
   },
-  "react-native-builder-bob": {
-    "source": "src",
-    "output": "lib",
-    "targets": [
-      ["commonjs", { "esm": true }],
-      "module",
-      "typescript"
-    ]
+  "release-it": {
+    "npm": {
+      "publish": false
+    },
+    "git": {
+      "commitMessage": "chore: release ${version}",
+      "tagName": "v${version}",
+      "requireCleanWorkingDir": false
+    },
+    "github": {
+      "release": true
+    },
+    "hooks": {
+      "before:release": "bun i",
+      "after:bump": "scripts/try-install-lockfiles.sh"
+    },
+    "plugins": {
+      "@release-it/bumper": {
+        "out": [
+          {
+            "file": "packages/nitro-image-compress/package.json",
+            "path": "version"
+          },
+          {
+            "file": "example/package.json",
+            "path": "version"
+          }
+        ]
+      },
+      "@release-it/conventional-changelog": {
+        "preset": {
+          "name": "conventionalcommits",
+          "types": [
+            {
+              "type": "feat",
+              "section": "✨ Features"
+            },
+            {
+              "type": "perf",
+              "section": "💨 Performance Improvements"
+            },
+            {
+              "type": "fix",
+              "section": "🐛 Bug Fixes"
+            },
+            {
+              "type": "chore(deps)",
+              "section": "🛠️ Dependency Upgrades"
+            },
+            {
+              "type": "docs",
+              "section": "📚 Documentation"
+            }
+          ]
+        }
+      }
+    }
   }
 }

@@ -14,9 +14,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
-    "outDir": "../lib/typescript",
-    "rootDir": "../src"
+    "outDir": "./lib/typescript",
+    "rootDir": "./src"
   },
-  "include": ["../src/**/*"],
-  "exclude": ["../node_modules", "../lib", "../example"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "lib"]
 }
