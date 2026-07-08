@@ -17,7 +17,17 @@ import kotlin.math.roundToInt
 
 /**
  * Native Android implementation of the ImageCompressor Nitro HybridObject.
- * Uses id.zelory:compressor for efficient image compression.
+ *
+ * Uses [id.zelory:compressor](https://github.com/zetbaitsu/Compressor) for image compression,
+ * which provides:
+ * - Smart `inSampleSize` calculation for memory-efficient decoding
+ * - Automatic EXIF orientation correction
+ * - Aspect-ratio-aware resizing
+ *
+ * Compression runs on a coroutine/thread via Nitro's `Promise.async`.
+ * The `getImageInfo` method is synchronous (called directly via JSI).
+ *
+ * @param context Android application context, needed by Compressor for cache directory access
  */
 class HybridImageCompressor(
     private val context: Context,
@@ -28,6 +38,13 @@ class HybridImageCompressor(
 
     // MARK: - getImageInfo (synchronous via JSI)
 
+    /**
+     * Reads image dimensions and file size without fully decoding the bitmap.
+     * Uses `BitmapFactory.Options.inJustDecodeBounds = true` for zero-allocation metadata read.
+     *
+     * @param uri File URI or absolute path to the image
+     * @return [ImageInfo] with pixel dimensions, byte size, and MIME type
+     */
     override fun getImageInfo(uri: String): ImageInfo {
         val file = resolveFile(uri)
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -45,6 +62,19 @@ class HybridImageCompressor(
 
     // MARK: - compress (async, powered by Compressor lib)
 
+    /**
+     * Compresses an image using the Compressor library.
+     *
+     * Pipeline:
+     * 1. Copy source file to cache (Compressor requires a writable file)
+     * 2. Apply resolution constraints (maintains aspect ratio)
+     * 3. Compress with specified quality and format
+     * 4. Return file URI or base64 data URI
+     *
+     * @param uri File URI or absolute path to the source image
+     * @param options Compression configuration
+     * @return Promise resolving to [CompressResult]
+     */
     override fun compress(uri: String, options: CompressOptions): Promise<CompressResult> {
         return Promise.async {
             val sourceFile = resolveFile(uri)
@@ -59,38 +89,40 @@ class HybridImageCompressor(
                 ImageFormat.WEBP -> Bitmap.CompressFormat.WEBP_LOSSY
             }
 
-            // Copy source to cache so Compressor can work with it
+            // Compressor modifies the input file, so we work on a copy
             val workingFile = File(getCacheDir(), "source_${UUID.randomUUID()}.tmp")
             sourceFile.copyTo(workingFile, overwrite = true)
 
-            // Use Compressor library for compression
+            // Apply compression constraints via Compressor DSL
             val compressedFile = Compressor.compress(context, workingFile) {
                 if (maxWidth > 0 && maxHeight > 0) {
                     resolution(maxWidth, maxHeight)
                 } else if (maxWidth > 0) {
+                    // Only width constrained — use very large height to avoid height-limiting
                     resolution(maxWidth, maxWidth * 10)
                 } else if (maxHeight > 0) {
+                    // Only height constrained — use very large width to avoid width-limiting
                     resolution(maxHeight * 10, maxHeight)
                 }
                 quality(quality)
                 format(compressFormat)
             }
 
-            // Clean up working file
+            // Clean up the temporary working copy
             workingFile.delete()
 
-            // Read output dimensions
+            // Read output dimensions (zero-allocation bounds-only decode)
             val outputOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(compressedFile.absolutePath, outputOptions)
 
-            // Build result
+            // Build the output URI (either file path or base64 data URI)
             val outputUri: String = if (options.returnBase64 == true) {
                 val bytes = compressedFile.readBytes()
                 val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                 compressedFile.delete()
                 "data:image/${format.name.lowercase()};base64,$base64"
             } else {
-                // Move to a predictable output path
+                // Rename to final output path with correct extension
                 val ext = format.name.lowercase()
                 val outputFile = File(getCacheDir(), "compressed_${UUID.randomUUID()}.$ext")
                 compressedFile.renameTo(outputFile)
@@ -108,6 +140,10 @@ class HybridImageCompressor(
 
     // MARK: - Private Helpers
 
+    /**
+     * Resolves a file URI or absolute path string to a [File] instance.
+     * Strips `file://` or `file:` prefixes if present.
+     */
     private fun resolveFile(uri: String): File {
         val cleaned = uri
             .removePrefix("file://")
@@ -115,12 +151,20 @@ class HybridImageCompressor(
         return File(cleaned)
     }
 
+    /**
+     * Detects MIME type from file extension using Android's [MimeTypeMap].
+     * Fallback when BitmapFactory doesn't report outMimeType (rare edge case).
+     */
     private fun detectMimeType(file: File): String {
         val extension = file.extension.lowercase()
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
             ?: "application/octet-stream"
     }
 
+    /**
+     * Returns (and creates if needed) the app-scoped cache directory for compressed outputs.
+     * Located at: `<app-cache>/nitro-image-compress/`
+     */
     private fun getCacheDir(): File {
         val dir = File(context.cacheDir, "nitro-image-compress")
         if (!dir.exists()) dir.mkdirs()

@@ -3,30 +3,45 @@ import ImageResizer from 'react-native-image-resizer';
 import { Image as RNCompressor } from 'react-native-compressor';
 import type { BenchmarkResult, ImageSource } from './types.js';
 
-const QUALITY = 0.7;
-const MAX_WIDTH = 1920;
-const MAX_HEIGHT = 1080;
+/**
+ * Standard compression parameters used across all benchmarks.
+ * Ensures a fair apples-to-apples comparison between libraries.
+ */
+const QUALITY = 0.7;       // 70% JPEG quality
+const MAX_WIDTH = 1920;    // Full HD width cap
+const MAX_HEIGHT = 1080;   // Full HD height cap
 
 /**
- * Run compression benchmark across all three libraries.
+ * Runs a compression benchmark across all three libraries sequentially.
+ *
+ * Each library compresses the same source image with identical parameters.
+ * Results include wall-clock timing via `performance.now()`.
+ *
+ * Libraries tested:
+ * 1. **nitro-image-compress** — JSI/Nitro (this library)
+ * 2. **react-native-image-resizer** — Old bridge architecture
+ * 3. **react-native-compressor** — Native bridge
+ *
+ * @param source - The source image to compress (from image picker)
+ * @returns Array of benchmark results, one per library
  */
 export const runBenchmark = async (
   source: ImageSource,
 ): Promise<BenchmarkResult[]> => {
   const results: BenchmarkResult[] = [];
 
-  // 1. nitro-image-compress
+  // Run sequentially to avoid CPU contention affecting timing
   results.push(await benchmarkNitro(source.uri));
-
-  // 2. react-native-image-resizer
   results.push(await benchmarkImageResizer(source.uri));
-
-  // 3. react-native-compressor
   results.push(await benchmarkRNCompressor(source.uri));
 
   return results;
 };
 
+/**
+ * Benchmarks nitro-image-compress (this library).
+ * Uses JSI for near-zero overhead function calls.
+ */
 const benchmarkNitro = async (uri: string): Promise<BenchmarkResult> => {
   try {
     const start = performance.now();
@@ -59,6 +74,10 @@ const benchmarkNitro = async (uri: string): Promise<BenchmarkResult> => {
   }
 };
 
+/**
+ * Benchmarks react-native-image-resizer.
+ * Uses the old React Native bridge (JSON serialization overhead).
+ */
 const benchmarkImageResizer = async (uri: string): Promise<BenchmarkResult> => {
   try {
     const start = performance.now();
@@ -67,10 +86,10 @@ const benchmarkImageResizer = async (uri: string): Promise<BenchmarkResult> => {
       MAX_WIDTH,
       MAX_HEIGHT,
       'JPEG',
-      Math.round(QUALITY * 100),
-      0,
-      undefined,
-      false,
+      Math.round(QUALITY * 100), // This lib expects 0-100 integer
+      0,         // rotation
+      undefined, // output path (use default temp)
+      false,     // keep metadata
     );
     const duration = performance.now() - start;
 
@@ -95,6 +114,12 @@ const benchmarkImageResizer = async (uri: string): Promise<BenchmarkResult> => {
   }
 };
 
+/**
+ * Benchmarks react-native-compressor.
+ * Uses native bridge with manual compression mode.
+ * Output metadata is read via nitro's sync `getImageInfo` since this lib
+ * doesn't return dimensions in its response.
+ */
 const benchmarkRNCompressor = async (uri: string): Promise<BenchmarkResult> => {
   try {
     const start = performance.now();
@@ -107,7 +132,7 @@ const benchmarkRNCompressor = async (uri: string): Promise<BenchmarkResult> => {
     });
     const duration = performance.now() - start;
 
-    // Get output info using nitro's sync getImageInfo
+    // Use nitro's sync getImageInfo to read output metadata (fast, ~0.3ms)
     const info = getImageInfo(compressedUri);
 
     return {
