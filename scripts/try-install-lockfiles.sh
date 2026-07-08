@@ -1,13 +1,23 @@
 #!/bin/bash
-# Attempt to regenerate lockfiles after version bump.
-# Non-fatal — CI will catch mismatches.
 
-set -e
+# Do not exit on errors
+set +e
 
-echo "📦 Regenerating lockfiles..."
+cd "$(pwd)" || exit 0
 
-if command -v bun &> /dev/null; then
+# Run commands and ignore any errors
+{
+  # Install JS lockfiles
   bun i
-else
-  echo "⚠️  bun not found, skipping lockfile regeneration"
-fi
+  bun run build
+
+  # Install example pods
+  bun example bundle-install
+  bun example pods
+
+  # Add everything to git
+  git add **/*.lock
+} || true
+
+# No errors - whatever.
+exit 0

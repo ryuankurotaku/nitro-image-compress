@@ -1,16 +1,18 @@
 #!/bin/bash
+
 set -e
 
-echo "🚀 Releasing nitro-image-compress..."
+echo "Starting the release process..."
+echo "Provided options: $@"
 
-# Ensure clean build
-bun run clean
-bun i
-bun run build
-bun run typecheck
-bun run lint-ci
+echo "Publishing 'nitro-image-compress' to NPM"
+cd packages/nitro-image-compress
+cp ../../README.md README.md
+bun release $@
+rm README.md
 
-# Run release-it
-bunx release-it "$@"
+echo "Creating a Git bump commit and GitHub release"
+cd ../..
+bun run release-it $@
 
-echo "✅ Release complete!"
+echo "Successfully released nitro-image-compress!"

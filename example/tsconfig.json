@@ -1,17 +1,12 @@
 {
+  "extends": [
+    "@tsconfig/react-native/tsconfig.json",
+    "../config/tsconfig.json"
+  ],
+  "include": ["src"],
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "lib": ["esnext"],
-    "strict": true,
-    "moduleResolution": "bundler",
-    "jsx": "react-native",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "verbatimModuleSyntax": true,
-    "resolveJsonModule": true,
-    "outDir": "./dist"
-  },
-  "include": ["src/**/*", "index.js"],
-  "exclude": ["node_modules", "ios", "android"]
+    "rootDir": "src",
+    "noEmit": true,
+    "composite": false
+  }
 }
