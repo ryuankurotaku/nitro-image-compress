@@ -1,10 +1,11 @@
-package com.nitro.imagecompress
+package com.margelo.nitro.imagecompress
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.webkit.MimeTypeMap
+import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.HybridObject
 import com.margelo.nitro.core.Promise
 import id.zelory.compressor.Compressor
@@ -32,6 +33,11 @@ import kotlin.math.roundToInt
 class HybridImageCompressor(
     private val context: Context,
 ) : HybridImageCompressorSpec() {
+
+    constructor() : this(
+        NitroModules.applicationContext
+            ?: throw IllegalStateException("NitroModules.applicationContext is null")
+    )
 
     override val memorySize: Long
         get() = 0L
