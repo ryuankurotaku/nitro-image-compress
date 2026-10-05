@@ -122,24 +122,28 @@ class HybridImageCompressor(
             BitmapFactory.decodeFile(compressedFile.absolutePath, outputOptions)
 
             // Build the output URI (either file path or base64 data URI)
-            val outputUri: String = if (options.returnBase64 == true) {
+            val outputUri: String
+            val outputSize: Double
+            if (options.returnBase64 == true) {
                 val bytes = compressedFile.readBytes()
                 val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                outputSize = bytes.size.toDouble()
                 compressedFile.delete()
-                "data:image/${format.name.lowercase()};base64,$base64"
+                outputUri = "data:image/${format.name.lowercase()};base64,$base64"
             } else {
                 // Rename to final output path with correct extension
                 val ext = format.name.lowercase()
                 val outputFile = File(getCacheDir(), "compressed_${UUID.randomUUID()}.$ext")
                 compressedFile.renameTo(outputFile)
-                Uri.fromFile(outputFile).toString()
+                outputSize = outputFile.length().toDouble()
+                outputUri = Uri.fromFile(outputFile).toString()
             }
 
             CompressResult(
                 uri = outputUri,
                 width = outputOptions.outWidth.toDouble(),
                 height = outputOptions.outHeight.toDouble(),
-                size = compressedFile.length().toDouble()
+                size = outputSize
             )
         }
     }
@@ -147,10 +151,20 @@ class HybridImageCompressor(
     // MARK: - Private Helpers
 
     /**
-     * Resolves a file URI or absolute path string to a [File] instance.
-     * Strips `file://` or `file:` prefixes if present.
+     * Resolves a file URI, content URI, or absolute path string to a [File] instance.
+     * Strips `file://` or `file:` prefixes if present, or copies `content://` streams to cache.
      */
     private fun resolveFile(uri: String): File {
+        if (uri.startsWith("content://")) {
+            val contentUri = Uri.parse(uri)
+            val tempFile = File(context.cacheDir, "input_${UUID.randomUUID()}")
+            context.contentResolver.openInputStream(contentUri)?.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            return tempFile
+        }
         val cleaned = uri
             .removePrefix("file://")
             .removePrefix("file:")
@@ -175,5 +189,15 @@ class HybridImageCompressor(
         val dir = File(context.cacheDir, "nitro-image-compress")
         if (!dir.exists()) dir.mkdirs()
         return dir
+    }
+
+    companion object {
+        init {
+            try {
+                System.loadLibrary("NitroImageCompress")
+            } catch (_: Throwable) {
+                // Ignored if already loaded
+            }
+        }
     }
 }
