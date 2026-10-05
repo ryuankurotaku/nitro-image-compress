@@ -8,11 +8,18 @@ react-native-nitro-image-compressor/
 │   └── react-native-nitro-image-compressor/       # The npm-published library
 │       ├── src/                     # TypeScript source (barrel → compress → types)
 │       ├── ios/                     # Swift native implementation (UIImage + ImageIO)
-│       ├── android/                 # Kotlin native implementation (id.zelory:compressor)
+│       ├── android/                 # Kotlin native implementation + C++ JNI adapter
+│       │   ├── CMakeLists.txt       # CMake build for libNitroImageCompress.so
+│       │   └── src/main/
+│       │       ├── cpp/             # JNI entry point (cpp-adapter.cpp)
+│       │       └── java/com/margelo/nitro/imagecompress/
+│       │           └── HybridImageCompressor.kt  # Kotlin implementation
 │       ├── nitrogen/                # Nitro HybridObject spec (used by nitro-codegen)
 │       ├── tsconfig.json            # Typecheck config (noEmit)
 │       └── tsconfig.build.json      # Build config (emits to lib/ via bob)
 ├── example/                         # React Native benchmark app
+│   ├── android/                     # Android native project (Gradle wrapper)
+│   ├── ios/                         # iOS native project (Xcode workspace + CocoaPods)
 │   └── src/
 │       ├── screens/                 # One tab per library for independent testing
 │       ├── components/              # Shared UI (charts, cards)
@@ -30,10 +37,23 @@ react-native-nitro-image-compressor/
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) (package manager + task runner)
-- Xcode 15+ (for iOS)
-- Android Studio + SDK 26+ (for Android)
-- Ruby + Bundler (for CocoaPods)
+- [Bun](https://bun.sh) (≥ 1.0, package manager + task runner)
+- [Node.js](https://nodejs.org) (≥ 18) — required for Metro bundler and React Native CLI
+- [Java / JDK 17](https://www.azul.com/downloads/?version=java-17-lts&package=jdk) (Zulu OpenJDK 17 recommended for React Native 0.85 & Gradle)
+- Android Studio + Android SDK (API 35, Build-Tools 35.0.0+, NDK 27+)
+- Xcode 16+ (iOS 16+ deployment target)
+- Ruby (≥ 2.6) + Bundler & CocoaPods
+
+### Environment Setup (macOS)
+
+Ensure your shell exports the required SDK and JDK paths:
+
+```bash
+eval "$(/opt/homebrew/bin/brew shellenv)"
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$HOME/.bun/bin:$PATH
+```
 
 ### Bootstrap
 
@@ -54,13 +74,23 @@ bun run lint
 # Build the library (outputs to packages/react-native-nitro-image-compressor/lib/)
 bun run build
 
-# Run Nitro codegen (generates C++ JSI bindings from nitrogen/ spec)
+# Run Nitro codegen (generates C++, Swift, and Kotlin specs + autolinking)
 bun run specs
 
-# Start the example app
-bun example start
-bun example ios
-bun example android
+# Start the example app Metro bundler
+bun run example start
+
+# Run on iOS simulator
+bun run example ios
+
+# Run on Android emulator/device
+bun run example android
+
+# Alternatively, direct native builds:
+cd example/ios && pod install
+xcodebuild -workspace example/ios/NitroImageCompressExample.xcworkspace -scheme NitroImageCompressExample -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+
+cd example/android && ./gradlew assembleDebug
 ```
 
 ## Key Concepts
@@ -71,12 +101,24 @@ bun example android
 TypeScript API  →  JSI Bindings (C++, auto-generated)  →  Native (Swift/Kotlin)
      ↑                        ↑                                    ↑
   src/index.ts        nitrogen/generated/            ios/ & android/
-  (what users import)  (don't edit manually)         (hand-written native code)
+  (what users import)  (gitignored, auto-generated)   (hand-written native code)
 ```
 
-- **`nitrogen/image-compress.nitro.ts`** defines the HybridObject interface
-- Running `bun run specs` generates C++ bindings into `nitrogen/generated/`
-- Native code in `ios/` and `android/` implements the generated spec
+- **`nitrogen/image-compress.nitro.ts`** defines the HybridObject interface.
+- **`nitro.json`** configures autolinking for Swift and Kotlin:
+  ```json
+  "autolinking": {
+    "ImageCompressor": {
+      "swift": "HybridImageCompressor",
+      "kotlin": "HybridImageCompressor"
+    }
+  }
+  ```
+- Running `bun run specs` executes `nitro-codegen` and outputs:
+  - iOS autolinking: `NitroImageCompressAutolinking.mm` (Objective-C `+load`) & `NitroImageCompressAutolinking.swift`
+  - Android autolinking: `NitroImageCompressOnLoad.cpp/hpp` (invoked via `JNI_OnLoad` in `cpp-adapter.cpp`)
+  - C++ JSI bindings into `nitrogen/generated/` (configured in `.gitignore`).
+- Native code in `ios/` and `android/` implements the generated spec.
 
 ### TypeScript Config Hierarchy
 
@@ -111,7 +153,7 @@ The release flow:
 2. Handle it in `compress.ts` default options
 3. Add the native encoding in:
    - `ios/NitroImageCompress/HybridImageCompressor.swift` → `compressImage()`
-   - `android/.../HybridImageCompressor.kt` → `compressFormat` when-block
+   - `android/src/main/java/com/margelo/nitro/imagecompress/HybridImageCompressor.kt` → `compressFormat` when-block
 4. Add MIME detection in both native `detectMimeType` methods
 
 ## Code Style

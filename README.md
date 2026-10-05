@@ -191,7 +191,11 @@ Benchmarked on iPhone 15 Pro, 12MP photo (4032×3024, 8.2MB):
 | React | ≥ 19.0 |
 | react-native-nitro-modules | ≥ 0.18.0 |
 | iOS | ≥ 16.0 |
-| Android SDK | ≥ 26 |
+| Android SDK | ≥ 26 (compile/target: 35) |
+| Android NDK | ≥ 27 |
+| Java / JDK | 17 (Zulu OpenJDK 17 recommended) |
+| Node.js | ≥ 18 |
+| Xcode | ≥ 16.0 |
 | Bun (for development) | ≥ 1.0 |
 
 ## Development
@@ -209,9 +213,9 @@ bun run lint             # Lint + auto-fix (Biome)
 bun run specs            # Regenerate Nitro codegen
 
 # Example app
-bun example start        # Start Metro
-bun example ios          # Run on iOS simulator
-bun example android      # Run on Android emulator
+bun run example start    # Start Metro
+bun run example ios      # Run on iOS simulator
+bun run example android  # Run on Android emulator
 ```
 
 ## Project Structure
@@ -223,10 +227,12 @@ react-native-nitro-image-compressor/
 │   │   ├── index.ts                 # Barrel exports (no logic)
 │   │   ├── compress.ts              # compress() and getImageInfo()
 │   │   └── types.ts                 # All interfaces and types
-│   ├── ios/                         # Swift implementation
-│   ├── android/                     # Kotlin implementation
-│   └── nitrogen/                    # Nitro HybridObject spec
+│   ├── ios/                         # Swift native implementation
+│   ├── android/                     # Kotlin native implementation + C++ CMake adapter
+│   └── nitrogen/                    # Nitro HybridObject spec (used by nitro-codegen)
 ├── example/                         # Benchmark app (4 bottom tabs)
+│   ├── android/                     # Android native project (Gradle wrapper)
+│   ├── ios/                         # iOS native project (Xcode workspace + CocoaPods)
 │   └── src/screens/                 # One tab per library + Compare tab
 ├── config/                          # Shared TypeScript config
 ├── scripts/                         # Release automation
