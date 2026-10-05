@@ -1,10 +1,14 @@
+require "json"
+
+package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+
 Pod::Spec.new do |s|
   s.name         = "NitroImageCompress"
-  s.version      = "0.1.0"
-  s.summary      = "High-performance on-device image compression via Nitro Modules"
+  s.version      = package["version"]
+  s.summary      = package["description"] || "High-performance on-device image compression via Nitro Modules"
   s.homepage     = "https://github.com/user/react-native-nitro-image-compressor"
   s.license      = { :type => "MIT", :file => "LICENSE" }
-  s.author       = "Your Name"
+  s.authors      = package["author"] || "Your Name"
   s.source       = { :git => "https://github.com/user/react-native-nitro-image-compressor.git", :tag => s.version }
 
   s.platforms    = { :ios => "16.0" }
@@ -12,11 +16,10 @@ Pod::Spec.new do |s|
 
   s.source_files = [
     "ios/**/*.{swift,h,m,mm,cpp}",
-    "nitrogen/generated/ios/**/*.{swift,h,m,mm,cpp}",
-    "nitrogen/generated/shared/**/*.{hpp,cpp}"
   ]
 
-  s.dependency "NitroModules"
+  load 'nitrogen/generated/ios/NitroImageCompress+autolinking.rb'
+  add_nitrogen_files(s)
 
   install_modules_dependencies(s)
 end
