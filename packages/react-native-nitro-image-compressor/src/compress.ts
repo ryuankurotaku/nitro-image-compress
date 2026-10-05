@@ -4,7 +4,7 @@ import type {
   CompressOptions,
   CompressResult,
   ImageInfo,
-} from './types.js';
+} from './types';
 
 /**
  * Lazily-initialized singleton instance of the native ImageCompressor.

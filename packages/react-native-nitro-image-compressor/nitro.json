@@ -1,11 +1,16 @@
 {
-  "cxxNamespace": ["NitroImageCompress"],
+  "cxxNamespace": ["imagecompress"],
   "ios": {
     "iosModuleName": "NitroImageCompress"
   },
   "android": {
-    "androidNamespace": ["com", "nitro", "imagecompress"],
+    "androidNamespace": ["imagecompress"],
     "androidCxxLibName": "NitroImageCompress"
   },
-  "autolinking": {}
+  "autolinking": {
+    "ImageCompressor": {
+      "swift": "HybridImageCompressor",
+      "kotlin": "HybridImageCompressor"
+    }
+  }
 }
