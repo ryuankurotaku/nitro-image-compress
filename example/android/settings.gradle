@@ -1,0 +1,9 @@
+pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'NitroImageCompressExample'
+include ':app'
+include ':react-native-nitro-image-compressor'
+project(':react-native-nitro-image-compressor').projectDir = new File(rootProject.projectDir, '../../packages/react-native-nitro-image-compressor/android')
+includeBuild('../node_modules/@react-native/gradle-plugin')
+
