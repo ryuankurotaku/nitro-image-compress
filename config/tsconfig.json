@@ -15,9 +15,12 @@
     "allowUnusedLabels": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "module": "ESNext",
-    "ignoreDeprecations": "6.0",
+    // "ignoreDeprecations": "6.0",
+    "types": [],
     "moduleResolution": "Node",
     "noEmit": false,
     "noFallthroughCasesInSwitch": true,
