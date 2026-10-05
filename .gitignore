@@ -8,14 +8,18 @@ dist/
 # iOS
 **/ios/Pods/
 **/ios/build/
+**/.xcode.env.local
 
 # Android
 **/android/build/
+**/android/**/build/
 **/android/.gradle/
+**/android/local.properties
+**/.cxx/
 
 # Bun
 bun.lock
 
 # Build artifacts
 packages/*/lib/
-nitrogen/generated/
+**/nitrogen/generated/
