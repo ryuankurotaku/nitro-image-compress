@@ -11,8 +11,14 @@ import type {
  * Created via Nitro's HybridObject registry on first access.
  * The native side (Swift/Kotlin) handles the actual compression work.
  */
-const imageCompressor =
-  NitroModules.createHybridObject<ImageCompressor>('ImageCompressor');
+let _imageCompressor: ImageCompressor | undefined;
+function getImageCompressor(): ImageCompressor {
+  if (!_imageCompressor) {
+    _imageCompressor =
+      NitroModules.createHybridObject<ImageCompressor>('ImageCompressor');
+  }
+  return _imageCompressor;
+}
 
 /**
  * Compress an image at the given file URI.
@@ -45,7 +51,7 @@ export const compress = (
   uri: string,
   options: CompressOptions = {},
 ): Promise<CompressResult> => {
-  return imageCompressor.compress(uri, {
+  return getImageCompressor().compress(uri, {
     quality: options.quality ?? 0.7,
     maxWidth: options.maxWidth ?? 0,
     maxHeight: options.maxHeight ?? 0,
@@ -71,5 +77,5 @@ export const compress = (
  * ```
  */
 export const getImageInfo = (uri: string): ImageInfo => {
-  return imageCompressor.getImageInfo(uri);
+  return getImageCompressor().getImageInfo(uri);
 };
