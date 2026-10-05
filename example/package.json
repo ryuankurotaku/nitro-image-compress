@@ -15,7 +15,7 @@
     "react-native-nitro-modules": "^0.18.0",
     "react-native-nitro-image-compressor": "workspace:*",
     "react-native-image-picker": "^7.1.0",
-    "react-native-image-resizer": "^3.0.7",
+    "react-native-image-resizer": "npm:@bam.tech/react-native-image-resizer@^3.0.7",
     "react-native-compressor": "^1.9.0",
     "@react-navigation/native": "^7.0.0",
     "@react-navigation/bottom-tabs": "^7.0.0",
