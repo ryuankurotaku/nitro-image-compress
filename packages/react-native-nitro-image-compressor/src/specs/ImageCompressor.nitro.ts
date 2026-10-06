@@ -113,7 +113,7 @@ export interface ImageInfo {
  *
  * This interface is implemented natively in:
  * - **iOS**: `HybridImageCompressor.swift` (UIImage + ImageIO)
- * - **Android**: `HybridImageCompressor.kt` (id.zelory:compressor)
+ * - **Android**: `HybridImageCompressor.kt` (native BitmapFactory + Matrix)
  */
 export interface ImageCompressor
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {

@@ -64,5 +64,4 @@ dependencies {
   implementation "com.facebook.react:react-android"
   implementation "androidx.annotation:annotation:1.8.0"
   implementation project(":react-native-nitro-modules")
-  implementation "id.zelory:compressor:3.0.1"
 }

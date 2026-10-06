@@ -3,32 +3,32 @@ package com.margelo.nitro.imagecompress
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
+import android.os.Build
+import android.util.Base64
 import android.webkit.MimeTypeMap
 import com.margelo.nitro.NitroModules
-import com.margelo.nitro.core.HybridObject
 import com.margelo.nitro.core.Promise
-import id.zelory.compressor.Compressor
-import id.zelory.compressor.constraint.format
-import id.zelory.compressor.constraint.quality
-import id.zelory.compressor.constraint.resolution
+import java.io.BufferedOutputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.util.UUID
 import kotlin.math.roundToInt
 
 /**
- * Native Android implementation of the ImageCompressor Nitro HybridObject.
+ * High-performance native Android implementation of the ImageCompressor Nitro HybridObject.
  *
- * Uses [id.zelory:compressor](https://github.com/zetbaitsu/Compressor) for image compression,
- * which provides:
- * - Smart `inSampleSize` calculation for memory-efficient decoding
- * - Automatic EXIF orientation correction
- * - Aspect-ratio-aware resizing
- *
- * Compression runs on a coroutine/thread via Nitro's `Promise.async`.
- * The `getImageInfo` method is synchronous (called directly via JSI).
- *
- * @param context Android application context, needed by Compressor for cache directory access
+ * Pipeline features:
+ * - Zero-allocation bounds and EXIF orientation detection
+ * - Aspect-ratio aware bounding box containment
+ * - Fast subsampled decoding (`inSampleSize`) to avoid huge RAM allocations
+ * - Hardware-filtered scaling via `Bitmap.createScaledBitmap`
+ * - Direct single-pass stream compression into final output file (zero intermediate disk copies)
+ * - Immediate native bitmap recycling to minimize GC pressure
  */
 class HybridImageCompressor(
     private val context: Context,
@@ -44,105 +44,210 @@ class HybridImageCompressor(
 
     // MARK: - getImageInfo (synchronous via JSI)
 
-    /**
-     * Reads image dimensions and file size without fully decoding the bitmap.
-     * Uses `BitmapFactory.Options.inJustDecodeBounds = true` for zero-allocation metadata read.
-     *
-     * @param uri File URI or absolute path to the image
-     * @return [ImageInfo] with pixel dimensions, byte size, and MIME type
-     */
     override fun getImageInfo(uri: String): ImageInfo {
-        val file = resolveFile(uri)
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, options)
+        val rotation = getRotationDegrees(uri)
+        val isRotated90or270 = rotation == 90 || rotation == 270
 
-        val mimeType = options.outMimeType ?: detectMimeType(file)
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+
+        val fileSize: Double
+        val mimeType: String
+
+        if (uri.startsWith("content://")) {
+            val contentUri = Uri.parse(uri)
+            context.contentResolver.openInputStream(contentUri)?.use { input ->
+                BitmapFactory.decodeStream(input, null, options)
+            }
+            fileSize = context.contentResolver.openAssetFileDescriptor(contentUri, "r")?.use {
+                it.length.toDouble()
+            } ?: 0.0
+            mimeType = options.outMimeType ?: context.contentResolver.getType(contentUri) ?: "image/jpeg"
+        } else {
+            val file = resolveFile(uri)
+            BitmapFactory.decodeFile(file.absolutePath, options)
+            fileSize = file.length().toDouble()
+            mimeType = options.outMimeType ?: detectMimeType(file)
+        }
+
+        val visualWidth = if (isRotated90or270) options.outHeight else options.outWidth
+        val visualHeight = if (isRotated90or270) options.outWidth else options.outHeight
 
         return ImageInfo(
-            width = options.outWidth.toDouble(),
-            height = options.outHeight.toDouble(),
-            size = file.length().toDouble(),
+            width = visualWidth.toDouble(),
+            height = visualHeight.toDouble(),
+            size = fileSize,
             mimeType = mimeType
         )
     }
 
-    // MARK: - compress (async, powered by Compressor lib)
+    // MARK: - compress (async on background thread via Nitro Promise)
 
-    /**
-     * Compresses an image using the Compressor library.
-     *
-     * Pipeline:
-     * 1. Copy source file to cache (Compressor requires a writable file)
-     * 2. Apply resolution constraints (maintains aspect ratio)
-     * 3. Compress with specified quality and format
-     * 4. Return file URI or base64 data URI
-     *
-     * @param uri File URI or absolute path to the source image
-     * @param options Compression configuration
-     * @return Promise resolving to [CompressResult]
-     */
     override fun compress(uri: String, options: CompressOptions): Promise<CompressResult> {
         return Promise.async {
-            val sourceFile = resolveFile(uri)
-            val quality = ((options.quality ?: 0.7) * 100).roundToInt()
-            val format = options.format ?: ImageFormat.JPEG
+            val rotation = getRotationDegrees(uri)
+            val isRotated90or270 = rotation == 90 || rotation == 270
+
+            // Step 1: Decode bounds with zero allocation
+            val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            if (uri.startsWith("content://")) {
+                val contentUri = Uri.parse(uri)
+                context.contentResolver.openInputStream(contentUri)?.use {
+                    BitmapFactory.decodeStream(it, null, boundsOptions)
+                }
+            } else {
+                val file = resolveFile(uri)
+                BitmapFactory.decodeFile(file.absolutePath, boundsOptions)
+            }
+
+            val rawWidth = boundsOptions.outWidth
+            val rawHeight = boundsOptions.outHeight
+            if (rawWidth <= 0 || rawHeight <= 0) {
+                throw IOException("Failed to decode image bounds at $uri")
+            }
+
+            // Visual dimensions taking EXIF rotation into account
+            val visualWidth = if (isRotated90or270) rawHeight else rawWidth
+            val visualHeight = if (isRotated90or270) rawWidth else rawHeight
+
             val maxWidth = (options.maxWidth ?: 0.0).roundToInt()
             val maxHeight = (options.maxHeight ?: 0.0).roundToInt()
+
+            // Step 2: Calculate target dimensions preserving aspect ratio
+            var targetWidth = visualWidth
+            var targetHeight = visualHeight
+
+            if (maxWidth > 0 && maxHeight > 0) {
+                val scale = minOf(maxWidth.toFloat() / visualWidth, maxHeight.toFloat() / visualHeight, 1.0f)
+                targetWidth = (visualWidth * scale).roundToInt()
+                targetHeight = (visualHeight * scale).roundToInt()
+            } else if (maxWidth > 0 && visualWidth > maxWidth) {
+                val scale = maxWidth.toFloat() / visualWidth
+                targetWidth = maxWidth
+                targetHeight = (visualHeight * scale).roundToInt()
+            } else if (maxHeight > 0 && visualHeight > maxHeight) {
+                val scale = maxHeight.toFloat() / visualHeight
+                targetHeight = maxHeight
+                targetWidth = (visualWidth * scale).roundToInt()
+            }
+
+            // Required dimensions in raw sensor orientation
+            val reqRawWidth = if (isRotated90or270) targetHeight else targetWidth
+            val reqRawHeight = if (isRotated90or270) targetWidth else targetHeight
+
+            // Step 3: Compute optimal inSampleSize to avoid loading full-res bitmap into RAM
+            var inSampleSize = 1
+            if (rawHeight > reqRawHeight || rawWidth > reqRawWidth) {
+                val halfHeight = rawHeight / 2
+                val halfWidth = rawWidth / 2
+                while ((halfHeight / inSampleSize) >= reqRawHeight && (halfWidth / inSampleSize) >= reqRawWidth) {
+                    inSampleSize *= 2
+                }
+            }
+
+            // Step 4: Decode sampled bitmap
+            val decodeOptions = BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+                this.inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+
+            val decodedBitmap: Bitmap = if (uri.startsWith("content://")) {
+                val contentUri = Uri.parse(uri)
+                context.contentResolver.openInputStream(contentUri)?.use {
+                    BitmapFactory.decodeStream(it, null, decodeOptions)
+                } ?: throw IOException("Cannot open input stream for $uri")
+            } else {
+                val file = resolveFile(uri)
+                BitmapFactory.decodeFile(file.absolutePath, decodeOptions)
+                    ?: throw IOException("Failed to decode bitmap from ${file.absolutePath}")
+            }
+
+            // Step 5: Rotate & scale to final target dimensions
+            var processedBitmap = decodedBitmap
+
+            if (rotation != 0) {
+                val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+                val rotated = Bitmap.createBitmap(
+                    processedBitmap,
+                    0,
+                    0,
+                    processedBitmap.width,
+                    processedBitmap.height,
+                    matrix,
+                    true
+                )
+                if (rotated != processedBitmap) {
+                    processedBitmap.recycle()
+                    processedBitmap = rotated
+                }
+            }
+
+            if (processedBitmap.width != targetWidth || processedBitmap.height != targetHeight) {
+                val scaled = Bitmap.createScaledBitmap(processedBitmap, targetWidth, targetHeight, true)
+                if (scaled != processedBitmap) {
+                    processedBitmap.recycle()
+                    processedBitmap = scaled
+                }
+            }
+
+            // Step 6: Setup format & quality
+            val format = options.format ?: ImageFormat.JPEG
+            val quality = (((options.quality ?: 0.7) * 100).roundToInt()).coerceIn(0, 100)
 
             val compressFormat = when (format) {
                 ImageFormat.JPEG -> Bitmap.CompressFormat.JPEG
                 ImageFormat.PNG -> Bitmap.CompressFormat.PNG
-                ImageFormat.WEBP -> Bitmap.CompressFormat.WEBP_LOSSY
-            }
-
-            // Compressor modifies the input file, so we work on a copy
-            val workingFile = File(getCacheDir(), "source_${UUID.randomUUID()}.tmp")
-            sourceFile.copyTo(workingFile, overwrite = true)
-
-            // Apply compression constraints via Compressor DSL
-            val compressedFile = Compressor.compress(context, workingFile) {
-                if (maxWidth > 0 && maxHeight > 0) {
-                    resolution(maxWidth, maxHeight)
-                } else if (maxWidth > 0) {
-                    // Only width constrained — use very large height to avoid height-limiting
-                    resolution(maxWidth, maxWidth * 10)
-                } else if (maxHeight > 0) {
-                    // Only height constrained — use very large width to avoid width-limiting
-                    resolution(maxHeight * 10, maxHeight)
+                ImageFormat.WEBP -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        Bitmap.CompressFormat.WEBP_LOSSY
+                    } else {
+                        @Suppress("DEPRECATION")
+                        Bitmap.CompressFormat.WEBP
+                    }
                 }
-                quality(quality)
-                format(compressFormat)
             }
 
-            // Clean up the temporary working copy
-            workingFile.delete()
-
-            // Read output dimensions (zero-allocation bounds-only decode)
-            val outputOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(compressedFile.absolutePath, outputOptions)
-
-            // Build the output URI (either file path or base64 data URI)
+            // Step 7: Stream directly into destination (zero intermediate temp copies)
             val outputUri: String
             val outputSize: Double
+            val finalWidth = processedBitmap.width.toDouble()
+            val finalHeight = processedBitmap.height.toDouble()
+
             if (options.returnBase64 == true) {
-                val bytes = compressedFile.readBytes()
-                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                val baos = ByteArrayOutputStream()
+                processedBitmap.compress(compressFormat, quality, baos)
+                processedBitmap.recycle()
+
+                val bytes = baos.toByteArray()
                 outputSize = bytes.size.toDouble()
-                compressedFile.delete()
-                outputUri = "data:image/${format.name.lowercase()};base64,$base64"
+                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                val ext = when (format) {
+                    ImageFormat.JPEG -> "jpeg"
+                    ImageFormat.PNG -> "png"
+                    ImageFormat.WEBP -> "webp"
+                }
+                outputUri = "data:image/$ext;base64,$base64"
             } else {
-                // Rename to final output path with correct extension
-                val ext = format.name.lowercase()
+                val ext = when (format) {
+                    ImageFormat.JPEG -> "jpg"
+                    ImageFormat.PNG -> "png"
+                    ImageFormat.WEBP -> "webp"
+                }
                 val outputFile = File(getCacheDir(), "compressed_${UUID.randomUUID()}.$ext")
-                compressedFile.renameTo(outputFile)
+                FileOutputStream(outputFile).use { fos ->
+                    BufferedOutputStream(fos).use { bos ->
+                        processedBitmap.compress(compressFormat, quality, bos)
+                    }
+                }
+                processedBitmap.recycle()
+
                 outputSize = outputFile.length().toDouble()
                 outputUri = Uri.fromFile(outputFile).toString()
             }
 
             CompressResult(
                 uri = outputUri,
-                width = outputOptions.outWidth.toDouble(),
-                height = outputOptions.outHeight.toDouble(),
+                width = finalWidth,
+                height = finalHeight,
                 size = outputSize
             )
         }
@@ -151,29 +256,40 @@ class HybridImageCompressor(
     // MARK: - Private Helpers
 
     /**
-     * Resolves a file URI, content URI, or absolute path string to a [File] instance.
-     * Strips `file://` or `file:` prefixes if present, or copies `content://` streams to cache.
+     * Resolves orientation degrees (0, 90, 180, 270) from EXIF metadata.
+     */
+    private fun getRotationDegrees(uri: String): Int {
+        return try {
+            val exif = if (uri.startsWith("content://")) {
+                context.contentResolver.openInputStream(Uri.parse(uri))?.use {
+                    ExifInterface(it)
+                }
+            } else {
+                val cleaned = uri.removePrefix("file://").removePrefix("file:")
+                ExifInterface(cleaned)
+            } ?: return 0
+
+            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                else -> 0
+            }
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    /**
+     * Resolves a file URI or path string to a [File] instance.
      */
     private fun resolveFile(uri: String): File {
-        if (uri.startsWith("content://")) {
-            val contentUri = Uri.parse(uri)
-            val tempFile = File(context.cacheDir, "input_${UUID.randomUUID()}")
-            context.contentResolver.openInputStream(contentUri)?.use { input ->
-                tempFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            return tempFile
-        }
-        val cleaned = uri
-            .removePrefix("file://")
-            .removePrefix("file:")
+        val cleaned = uri.removePrefix("file://").removePrefix("file:")
         return File(cleaned)
     }
 
     /**
      * Detects MIME type from file extension using Android's [MimeTypeMap].
-     * Fallback when BitmapFactory doesn't report outMimeType (rare edge case).
      */
     private fun detectMimeType(file: File): String {
         val extension = file.extension.lowercase()
@@ -183,7 +299,6 @@ class HybridImageCompressor(
 
     /**
      * Returns (and creates if needed) the app-scoped cache directory for compressed outputs.
-     * Located at: `<app-cache>/nitro-image-compress/`
      */
     private fun getCacheDir(): File {
         val dir = File(context.cacheDir, "nitro-image-compress")

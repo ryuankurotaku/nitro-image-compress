@@ -170,9 +170,9 @@ Benchmarked on iPhone 15 Pro, 12MP photo (4032×3024, 8.2MB):
 │  nitrogen/ → nitro-codegen               │
 ├────────────────────┬─────────────────────┤
 │  iOS (Swift)       │  Android (Kotlin)   │
-│  UIImage +         │  id.zelory:         │
-│  ImageIO +         │  compressor +       │
-│  UIGraphicsRenderer│  BitmapFactory      │
+│  UIImage +         │  Native Android     │
+│  ImageIO +         │  BitmapFactory +    │
+│  UIGraphicsRenderer│  Matrix + Stream    │
 └────────────────────┴─────────────────────┘
 ```
 
@@ -181,7 +181,7 @@ Benchmarked on iPhone 15 Pro, 12MP photo (4032×3024, 8.2MB):
 | Platform | Library | Why |
 |----------|---------|-----|
 | iOS | Apple UIImage + ImageIO | Hardware-accelerated, no third-party needed |
-| Android | [Compressor](https://github.com/zetbaitsu/Compressor) (`id.zelory:compressor`) | Smart compression with EXIF handling, battle-tested (~7k ⭐) |
+| Android | Native Android BitmapFactory + Matrix | Zero third-party dependencies, single-pass streaming, sub-sampled decode |
 
 ## Requirements
 
