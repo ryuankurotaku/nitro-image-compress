@@ -1,24 +1,9 @@
-import { NitroModules } from 'react-native-nitro-modules';
+import { getImageCompressor } from './nitro';
 import type {
-  ImageCompressor,
   CompressOptions,
   CompressResult,
   ImageInfo,
 } from './types';
-
-/**
- * Lazily-initialized singleton instance of the native ImageCompressor.
- * Created via Nitro's HybridObject registry on first access.
- * The native side (Swift/Kotlin) handles the actual compression work.
- */
-let _imageCompressor: ImageCompressor | undefined;
-function getImageCompressor(): ImageCompressor {
-  if (!_imageCompressor) {
-    _imageCompressor =
-      NitroModules.createHybridObject<ImageCompressor>('ImageCompressor');
-  }
-  return _imageCompressor;
-}
 
 /**
  * Compress an image at the given file URI.

@@ -104,7 +104,7 @@ TypeScript API  →  JSI Bindings (C++, auto-generated)  →  Native (Swift/Kotl
   (what users import)  (gitignored, auto-generated)   (hand-written native code)
 ```
 
-- **`nitrogen/image-compress.nitro.ts`** defines the HybridObject interface.
+- **`src/specs/ImageCompressor.nitro.ts`** defines the HybridObject interface.
 - **`nitro.json`** configures autolinking for Swift and Kotlin:
   ```json
   "autolinking": {

@@ -19,4 +19,6 @@
  * ```
  */
 export { compress, getImageInfo } from './compress';
-export type { CompressOptions, CompressResult, ImageInfo, ImageFormat } from './types';
+export { HybridImageCompressor } from './nitro';
+export type { ImageCompressor as ImageCompressorNative } from './specs/ImageCompressor.nitro';
+export type * from './types';

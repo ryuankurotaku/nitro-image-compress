@@ -12,5 +12,6 @@
       "swift": "HybridImageCompressor",
       "kotlin": "HybridImageCompressor"
     }
-  }
+  },
+  "ignorePaths": ["node_modules", "example", "lib"]
 }
