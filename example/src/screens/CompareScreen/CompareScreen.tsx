@@ -1,7 +1,8 @@
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useReducer } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,63 +17,83 @@ import {
   ImageSourceInfo,
   ResultCard,
   ScreenHeader,
-} from '../components';
-import type { BenchmarkResult, ImageSource } from '../utils';
-import { runBenchmark } from '../utils';
+} from '../../components';
+import {
+  BENCHMARK_DISPATCH_DELAY_MS,
+  COMPARE_SCREEN_BADGE,
+  COMPARE_SCREEN_BADGE_COLOR,
+  COMPARE_SCREEN_SUBTITLE,
+  COMPARE_SCREEN_TITLE,
+  INITIAL_COMPARE_STATE,
+} from './constants';
+import { compareReducer } from './reducer';
+import { runBenchmark } from './utils';
 
-export const CompareScreen: React.FC = () => {
-  const [source, setSource] = useState<ImageSource | null>(null);
-  const [results, setResults] = useState<BenchmarkResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [runCount, setRunCount] = useState(0);
+const CompareScreen: React.FC = () => {
+  const [state, dispatch] = useReducer(compareReducer, INITIAL_COMPARE_STATE);
+  const { source, results, loading, runCount } = state;
 
   const pickImage = useCallback(async () => {
-    const response = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
-    const asset = response.assets?.[0];
-    if (!asset?.uri) return;
+    try {
+      const response = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
+      if (response.didCancel) return;
+      if (response.errorMessage) {
+        Alert.alert('Image Picker Error', response.errorMessage);
+        return;
+      }
 
-    const info = getImageInfo(asset.uri);
-    setSource({
-      uri: asset.uri,
-      fileName: asset.fileName ?? 'Photo',
-      fileSize: info.size,
-      width: info.width,
-      height: info.height,
-    });
-    setResults([]);
-    setRunCount(0);
+      const asset = response.assets?.[0];
+      if (!asset?.uri) return;
+
+      const info = getImageInfo(asset.uri);
+      dispatch({
+        type: 'SET_SOURCE',
+        payload: {
+          uri: asset.uri,
+          fileName: asset.fileName ?? 'Photo',
+          fileSize: info.size,
+          width: info.width,
+          height: info.height,
+        },
+      });
+    } catch (error) {
+      Alert.alert('Error', String(error));
+    }
   }, []);
 
   const startBenchmark = useCallback(async () => {
-    if (!source) return;
-    setLoading(true);
-    setResults([]);
+    if (!source || loading) return;
+    dispatch({ type: 'START_BENCHMARK' });
 
     // Yield so React flushes the loading state and becomes completely idle before benchmarking
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, BENCHMARK_DISPATCH_DELAY_MS));
 
     try {
       const benchResults = await runBenchmark(source);
-      setResults(benchResults);
-      setRunCount((prev) => prev + 1);
-    } finally {
-      setLoading(false);
+      dispatch({ type: 'BENCHMARK_SUCCESS', payload: benchResults });
+    } catch (error) {
+      dispatch({ type: 'BENCHMARK_FAILURE' });
+      Alert.alert('Benchmark Failed', String(error));
     }
-  }, [source]);
+  }, [source, loading]);
 
-  const validResults = results.filter((r) => !r.error);
-  const winner =
-    validResults.length > 0
-      ? validResults.reduce((best, r) => (r.duration < best.duration ? r : best))
-      : null;
+  const validResults = useMemo(() => results.filter((r) => !r.error), [results]);
+
+  const winner = useMemo(
+    () =>
+      validResults.length > 0
+        ? validResults.reduce((best, r) => (r.duration < best.duration ? r : best))
+        : null,
+    [validResults],
+  );
 
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title="🏎️ Head-to-Head"
-        badge="BENCHMARK"
-        badgeColor="#4f46e5"
-        subtitle="Same image, same params, 3 libraries"
+        title={COMPARE_SCREEN_TITLE}
+        badge={COMPARE_SCREEN_BADGE}
+        badgeColor={COMPARE_SCREEN_BADGE_COLOR}
+        subtitle={COMPARE_SCREEN_SUBTITLE}
       />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -136,6 +157,8 @@ export const CompareScreen: React.FC = () => {
     </View>
   );
 };
+
+export default CompareScreen;
 
 const styles = StyleSheet.create({
   screen: {

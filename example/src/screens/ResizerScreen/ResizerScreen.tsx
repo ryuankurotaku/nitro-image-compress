@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useReducer } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,71 +12,82 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import ImageResizer from 'react-native-image-resizer';
-import type { ImageInfo } from 'react-native-nitro-image-compressor';
 import { getImageInfo } from 'react-native-nitro-image-compressor';
-import { EmptyState, ScreenHeader } from '../components';
+import { EmptyState, ScreenHeader } from '../../components';
+import {
+  INITIAL_RESIZER_STATE,
+  RESIZER_OPTIONS,
+  RESIZER_SCREEN_BADGE,
+  RESIZER_SCREEN_BADGE_COLOR,
+  RESIZER_SCREEN_SUBTITLE,
+  RESIZER_SCREEN_TITLE,
+} from './constants';
+import { resizerReducer } from './reducer';
 
-interface ResizerResult {
-  uri: string;
-  width: number;
-  height: number;
-  size: number;
-}
-
-export const ResizerScreen: React.FC = () => {
-  const [sourceUri, setSourceUri] = useState<string | null>(null);
-  const [sourceInfo, setSourceInfo] = useState<ImageInfo | null>(null);
-  const [result, setResult] = useState<ResizerResult | null>(null);
-  const [duration, setDuration] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [runCount, setRunCount] = useState(0);
+const ResizerScreen: React.FC = () => {
+  const [state, dispatch] = useReducer(resizerReducer, INITIAL_RESIZER_STATE);
+  const { sourceUri, sourceInfo, result, duration, loading, runCount } = state;
 
   const pickImage = useCallback(async () => {
-    const response = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
-    const asset = response.assets?.[0];
-    if (!asset?.uri) return;
+    try {
+      const response = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
+      if (response.didCancel) return;
+      if (response.errorMessage) {
+        Alert.alert('Image Picker Error', response.errorMessage);
+        return;
+      }
 
-    setSourceUri(asset.uri);
-    setResult(null);
-    setDuration(null);
-    setRunCount(0);
+      const asset = response.assets?.[0];
+      if (!asset?.uri) return;
 
-    const info = getImageInfo(asset.uri);
-    setSourceInfo(info);
+      const info = getImageInfo(asset.uri);
+      dispatch({
+        type: 'SET_SOURCE',
+        payload: {
+          uri: asset.uri,
+          info,
+        },
+      });
+    } catch (error) {
+      Alert.alert('Error', String(error));
+    }
   }, []);
 
   const compressImage = useCallback(async () => {
-    if (!sourceUri) return;
-    setLoading(true);
+    if (!sourceUri || loading) return;
+    dispatch({ type: 'START_COMPRESS' });
 
     try {
       const start = performance.now();
       const compressed = await ImageResizer.createResizedImage(
         sourceUri,
-        1920,
-        1080,
-        'JPEG',
-        70,
-        0,
+        RESIZER_OPTIONS.maxWidth,
+        RESIZER_OPTIONS.maxHeight,
+        RESIZER_OPTIONS.format,
+        RESIZER_OPTIONS.quality,
+        RESIZER_OPTIONS.rotation,
         undefined,
         false,
       );
       const elapsed = performance.now() - start;
 
-      setResult({
-        uri: compressed.uri,
-        width: compressed.width,
-        height: compressed.height,
-        size: compressed.size,
+      dispatch({
+        type: 'COMPRESS_SUCCESS',
+        payload: {
+          result: {
+            uri: compressed.uri,
+            width: compressed.width,
+            height: compressed.height,
+            size: compressed.size,
+          },
+          duration: Math.round(elapsed),
+        },
       });
-      setDuration(Math.round(elapsed));
-      setRunCount((prev) => prev + 1);
     } catch (error) {
+      dispatch({ type: 'COMPRESS_FAILURE' });
       Alert.alert('Error', String(error));
-    } finally {
-      setLoading(false);
     }
-  }, [sourceUri]);
+  }, [sourceUri, loading]);
 
   const savings =
     sourceInfo && result ? ((1 - result.size / sourceInfo.size) * 100).toFixed(1) : null;
@@ -84,10 +95,10 @@ export const ResizerScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title="🖼️ Image Resizer"
-        badge="Bridge / CG"
-        badgeColor="#3b82f6"
-        subtitle="Classic React Native asynchronous bridge"
+        title={RESIZER_SCREEN_TITLE}
+        badge={RESIZER_SCREEN_BADGE}
+        badgeColor={RESIZER_SCREEN_BADGE_COLOR}
+        subtitle={RESIZER_SCREEN_SUBTITLE}
       />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -186,6 +197,8 @@ export const ResizerScreen: React.FC = () => {
     </View>
   );
 };
+
+export default ResizerScreen;
 
 const styles = StyleSheet.create({
   screen: {

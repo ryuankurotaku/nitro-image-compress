@@ -1,18 +1,19 @@
 import type React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  DEFAULT_EMPTY_STATE_BUTTON_LABEL,
+  DEFAULT_EMPTY_STATE_DESCRIPTION,
+  DEFAULT_EMPTY_STATE_FEATURES,
+  DEFAULT_EMPTY_STATE_TITLE,
+} from './constants';
+import type { EmptyStateProps } from './types';
 
-interface Props {
-  onPickPress: () => void;
-  title?: string;
-  description?: string;
-  buttonLabel?: string;
-}
-
-export const EmptyState: React.FC<Props> = ({
+const EmptyState: React.FC<EmptyStateProps> = ({
   onPickPress,
-  title = 'No Image Selected',
-  description = 'Choose a high-resolution photo from your library to test performance.',
-  buttonLabel = 'Select Photo from Library',
+  title = DEFAULT_EMPTY_STATE_TITLE,
+  description = DEFAULT_EMPTY_STATE_DESCRIPTION,
+  buttonLabel = DEFAULT_EMPTY_STATE_BUTTON_LABEL,
+  features = DEFAULT_EMPTY_STATE_FEATURES,
 }) => {
   return (
     <View style={styles.container}>
@@ -27,23 +28,21 @@ export const EmptyState: React.FC<Props> = ({
         </View>
       </TouchableOpacity>
 
-      <View style={styles.featuresRow}>
-        <View style={styles.featurePill}>
-          <Text style={styles.featureIcon}>⚡</Text>
-          <Text style={styles.featureText}>Metal GPU</Text>
+      {features.length > 0 && (
+        <View style={styles.featuresRow}>
+          {features.map((feature) => (
+            <View key={feature.label} style={styles.featurePill}>
+              <Text style={styles.featureIcon}>{feature.icon}</Text>
+              <Text style={styles.featureText}>{feature.label}</Text>
+            </View>
+          ))}
         </View>
-        <View style={styles.featurePill}>
-          <Text style={styles.featureIcon}>🧠</Text>
-          <Text style={styles.featureText}>Zero-Copy</Text>
-        </View>
-        <View style={styles.featurePill}>
-          <Text style={styles.featureIcon}>📐</Text>
-          <Text style={styles.featureText}>1080p • 70%</Text>
-        </View>
-      </View>
+      )}
     </View>
   );
 };
+
+export default EmptyState;
 
 const styles = StyleSheet.create({
   container: {

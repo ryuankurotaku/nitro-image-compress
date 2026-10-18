@@ -1,15 +1,13 @@
 import { Image as RNCompressor } from 'react-native-compressor';
 import ImageResizer from 'react-native-image-resizer';
 import { getImageInfo, compress as nitroCompress } from 'react-native-nitro-image-compressor';
-import type { BenchmarkResult, ImageSource } from './types';
-
-/**
- * Standard compression parameters used across all benchmarks.
- * Ensures a fair apples-to-apples comparison between libraries.
- */
-const QUALITY = 0.7; // 70% JPEG quality
-const MAX_WIDTH = 1920; // Full HD width cap
-const MAX_HEIGHT = 1080; // Full HD height cap
+import type { BenchmarkResult, ImageSource } from '../../types';
+import {
+  BENCHMARK_INTER_LIB_DELAY_MS,
+  BENCHMARK_MAX_HEIGHT,
+  BENCHMARK_MAX_WIDTH,
+  BENCHMARK_QUALITY,
+} from './constants';
 
 /**
  * Runs a compression benchmark across all three libraries sequentially.
@@ -30,9 +28,9 @@ export const runBenchmark = async (source: ImageSource): Promise<BenchmarkResult
 
   // Run sequentially to avoid CPU contention affecting timing
   results.push(await benchmarkNitro(source.uri));
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, BENCHMARK_INTER_LIB_DELAY_MS));
   results.push(await benchmarkImageResizer(source.uri));
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  await new Promise((resolve) => setTimeout(resolve, BENCHMARK_INTER_LIB_DELAY_MS));
   results.push(await benchmarkRNCompressor(source.uri));
 
   return results;
@@ -46,9 +44,9 @@ const benchmarkNitro = async (uri: string): Promise<BenchmarkResult> => {
   try {
     const start = performance.now();
     const result = await nitroCompress(uri, {
-      quality: QUALITY,
-      maxWidth: MAX_WIDTH,
-      maxHeight: MAX_HEIGHT,
+      quality: BENCHMARK_QUALITY,
+      maxWidth: BENCHMARK_MAX_WIDTH,
+      maxHeight: BENCHMARK_MAX_HEIGHT,
       format: 'jpeg',
     });
     const duration = performance.now() - start;
@@ -83,10 +81,10 @@ const benchmarkImageResizer = async (uri: string): Promise<BenchmarkResult> => {
     const start = performance.now();
     const result = await ImageResizer.createResizedImage(
       uri,
-      MAX_WIDTH,
-      MAX_HEIGHT,
+      BENCHMARK_MAX_WIDTH,
+      BENCHMARK_MAX_HEIGHT,
       'JPEG',
-      Math.round(QUALITY * 100), // This lib expects 0-100 integer
+      Math.round(BENCHMARK_QUALITY * 100), // This lib expects 0-100 integer
       0, // rotation
       undefined, // output path (use default temp)
       false, // keep metadata
@@ -125,9 +123,9 @@ const benchmarkRNCompressor = async (uri: string): Promise<BenchmarkResult> => {
     const start = performance.now();
     const compressedUri = await RNCompressor.compress(uri, {
       compressionMethod: 'manual',
-      quality: QUALITY,
-      maxWidth: MAX_WIDTH,
-      maxHeight: MAX_HEIGHT,
+      quality: BENCHMARK_QUALITY,
+      maxWidth: BENCHMARK_MAX_WIDTH,
+      maxHeight: BENCHMARK_MAX_HEIGHT,
       output: 'jpg',
     });
     const duration = performance.now() - start;

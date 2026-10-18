@@ -1,4 +1,4 @@
-export { CompareScreen } from './CompareScreen';
-export { CompressorScreen } from './CompressorScreen';
-export { NitroScreen } from './NitroScreen';
-export { ResizerScreen } from './ResizerScreen';
+export * from './CompareScreen';
+export * from './CompressorScreen';
+export * from './NitroScreen';
+export * from './ResizerScreen';

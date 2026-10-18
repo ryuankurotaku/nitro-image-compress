@@ -1,0 +1,1 @@
+export const SOURCE_IMAGE_THUMBNAIL_SIZE = 60;

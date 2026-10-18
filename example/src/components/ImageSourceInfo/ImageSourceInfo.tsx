@@ -1,13 +1,9 @@
 import type React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { ImageSource } from '../utils/index.js';
+import { SOURCE_IMAGE_THUMBNAIL_SIZE } from './constants';
+import type { ImageSourceInfoProps } from './types';
 
-interface Props {
-  source: ImageSource;
-  onChangePress?: () => void;
-}
-
-export const ImageSourceInfo: React.FC<Props> = ({ source, onChangePress }) => {
+const ImageSourceInfo: React.FC<ImageSourceInfoProps> = ({ source, onChangePress }) => {
   return (
     <View style={styles.card}>
       <Image source={{ uri: source.uri }} style={styles.preview} />
@@ -37,6 +33,8 @@ export const ImageSourceInfo: React.FC<Props> = ({ source, onChangePress }) => {
   );
 };
 
+export default ImageSourceInfo;
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
@@ -54,8 +52,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   preview: {
-    width: 60,
-    height: 60,
+    width: SOURCE_IMAGE_THUMBNAIL_SIZE,
+    height: SOURCE_IMAGE_THUMBNAIL_SIZE,
     borderRadius: 12,
     backgroundColor: '#f1f5f9',
     borderWidth: 1,

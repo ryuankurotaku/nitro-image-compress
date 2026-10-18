@@ -1,40 +1,10 @@
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { BenchmarkResult } from '../utils/index.js';
+import { MIN_PROGRESS_WIDTH_PCT } from './constants';
+import type { BenchmarkChartProps } from './types';
+import { getLibraryConfig } from './utils';
 
-interface Props {
-  results: BenchmarkResult[];
-}
-
-const getLibraryConfig = (library: string) => {
-  if (library.includes('nitro')) {
-    return {
-      name: 'Nitro Compressor',
-      tag: 'JSI / Metal',
-      color: '#10b981',
-      bgLight: '#ecfdf5',
-      badgeColor: '#059669',
-    };
-  }
-  if (library.includes('resizer')) {
-    return {
-      name: 'Image Resizer',
-      tag: 'Bridge',
-      color: '#3b82f6',
-      bgLight: '#eff6ff',
-      badgeColor: '#2563eb',
-    };
-  }
-  return {
-    name: 'RN Compressor',
-    tag: 'Bridge',
-    color: '#f97316',
-    bgLight: '#fff7ed',
-    badgeColor: '#ea580c',
-  };
-};
-
-export const BenchmarkChart: React.FC<Props> = ({ results }) => {
+const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ results }) => {
   const minDuration = Math.min(...results.map((r) => r.duration)) || 1;
   const maxDuration = Math.max(...results.map((r) => r.duration)) || 1;
   const minOutputSize = Math.min(...results.map((r) => r.outputSize)) || 1;
@@ -83,7 +53,7 @@ export const BenchmarkChart: React.FC<Props> = ({ results }) => {
                   style={[
                     styles.fill,
                     {
-                      width: `${Math.max(6, ratio)}%`,
+                      width: `${Math.max(MIN_PROGRESS_WIDTH_PCT, ratio)}%`,
                       backgroundColor: config.color,
                     },
                   ]}
@@ -131,7 +101,7 @@ export const BenchmarkChart: React.FC<Props> = ({ results }) => {
                   style={[
                     styles.fill,
                     {
-                      width: `${Math.max(6, ratio)}%`,
+                      width: `${Math.max(MIN_PROGRESS_WIDTH_PCT, ratio)}%`,
                       backgroundColor: config.color,
                     },
                   ]}
@@ -144,6 +114,8 @@ export const BenchmarkChart: React.FC<Props> = ({ results }) => {
     </View>
   );
 };
+
+export default BenchmarkChart;
 
 const styles = StyleSheet.create({
   container: {

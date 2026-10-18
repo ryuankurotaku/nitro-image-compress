@@ -1,35 +1,9 @@
 import type React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import type { BenchmarkResult } from '../utils/index.js';
+import type { ResultCardProps } from './types';
+import { getLibraryConfig } from './utils';
 
-interface Props {
-  result: BenchmarkResult;
-}
-
-const getLibraryConfig = (library: string) => {
-  const lower = library.toLowerCase();
-  if (lower.includes('nitro')) {
-    return {
-      color: '#10B981',
-      badge: 'JSI / Metal GPU',
-      icon: '⚡',
-    };
-  }
-  if (lower.includes('resizer')) {
-    return {
-      color: '#3B82F6',
-      badge: 'Bridge / CG',
-      icon: '🖼️',
-    };
-  }
-  return {
-    color: '#F97316',
-    badge: 'Bridge / Native',
-    icon: '🗜️',
-  };
-};
-
-export const ResultCard: React.FC<Props> = ({ result }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
   const config = getLibraryConfig(result.library);
 
   if (result.error) {
@@ -88,6 +62,8 @@ export const ResultCard: React.FC<Props> = ({ result }) => {
     </View>
   );
 };
+
+export default ResultCard;
 
 const styles = StyleSheet.create({
   card: {

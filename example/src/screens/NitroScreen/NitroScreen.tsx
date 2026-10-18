@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useReducer } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,72 +10,69 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Image as RNCompressor } from 'react-native-compressor';
 import { launchImageLibrary } from 'react-native-image-picker';
-import type { ImageInfo } from 'react-native-nitro-image-compressor';
-import { getImageInfo } from 'react-native-nitro-image-compressor';
-import { EmptyState, ScreenHeader } from '../components';
+import { compress, getImageInfo } from 'react-native-nitro-image-compressor';
+import { EmptyState, ScreenHeader } from '../../components';
+import {
+  INITIAL_NITRO_STATE,
+  NITRO_COMPRESS_OPTIONS,
+  NITRO_SCREEN_BADGE,
+  NITRO_SCREEN_BADGE_COLOR,
+  NITRO_SCREEN_SUBTITLE,
+  NITRO_SCREEN_TITLE,
+} from './constants';
+import { nitroReducer } from './reducer';
 
-interface CompressorResult {
-  uri: string;
-  width: number;
-  height: number;
-  size: number;
-}
-
-export const CompressorScreen: React.FC = () => {
-  const [sourceUri, setSourceUri] = useState<string | null>(null);
-  const [sourceInfo, setSourceInfo] = useState<ImageInfo | null>(null);
-  const [result, setResult] = useState<CompressorResult | null>(null);
-  const [duration, setDuration] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [runCount, setRunCount] = useState(0);
+const NitroScreen: React.FC = () => {
+  const [state, dispatch] = useReducer(nitroReducer, INITIAL_NITRO_STATE);
+  const { sourceUri, sourceInfo, result, duration, loading, runCount } = state;
 
   const pickImage = useCallback(async () => {
-    const response = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
-    const asset = response.assets?.[0];
-    if (!asset?.uri) return;
+    try {
+      const response = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
+      if (response.didCancel) return;
+      if (response.errorMessage) {
+        Alert.alert('Image Picker Error', response.errorMessage);
+        return;
+      }
 
-    setSourceUri(asset.uri);
-    setResult(null);
-    setDuration(null);
-    setRunCount(0);
+      const asset = response.assets?.[0];
+      if (!asset?.uri) return;
 
-    const info = getImageInfo(asset.uri);
-    setSourceInfo(info);
+      const info = getImageInfo(asset.uri);
+      dispatch({
+        type: 'SET_SOURCE',
+        payload: {
+          uri: asset.uri,
+          info,
+        },
+      });
+    } catch (error) {
+      Alert.alert('Error', String(error));
+    }
   }, []);
 
   const compressImage = useCallback(async () => {
-    if (!sourceUri) return;
-    setLoading(true);
+    if (!sourceUri || loading) return;
+    dispatch({ type: 'START_COMPRESS' });
 
     try {
       const start = performance.now();
-      const compressedUri = await RNCompressor.compress(sourceUri, {
-        compressionMethod: 'manual',
-        quality: 0.7,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        output: 'jpg',
-      });
+      const compressed = await compress(sourceUri, NITRO_COMPRESS_OPTIONS);
       const elapsed = performance.now() - start;
 
-      const info = getImageInfo(compressedUri);
-
-      setResult({
-        uri: compressedUri,
-        width: info.width,
-        height: info.height,
-        size: info.size,
+      dispatch({
+        type: 'COMPRESS_SUCCESS',
+        payload: {
+          result: compressed,
+          duration: Math.round(elapsed),
+        },
       });
-      setDuration(Math.round(elapsed));
-      setRunCount((prev) => prev + 1);
     } catch (error) {
+      dispatch({ type: 'COMPRESS_FAILURE' });
       Alert.alert('Error', String(error));
-    } finally {
-      setLoading(false);
     }
-  }, [sourceUri]);
+  }, [sourceUri, loading]);
 
   const savings =
     sourceInfo && result ? ((1 - result.size / sourceInfo.size) * 100).toFixed(1) : null;
@@ -83,18 +80,18 @@ export const CompressorScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title="🗜️ RN Compressor"
-        badge="Bridge / Native"
-        badgeColor="#f97316"
-        subtitle="Community native bridge compression module"
+        title={NITRO_SCREEN_TITLE}
+        badge={NITRO_SCREEN_BADGE}
+        badgeColor={NITRO_SCREEN_BADGE_COLOR}
+        subtitle={NITRO_SCREEN_SUBTITLE}
       />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {!sourceUri ? (
           <EmptyState
             onPickPress={pickImage}
-            title="Test RN Compressor"
-            description="Pick a photo to test compression with react-native-compressor via traditional bridge."
+            title="Test Nitro Performance"
+            description="Pick a photo to run ultra-fast GPU compression with zero JSI bridge serialization overhead."
             buttonLabel="Select Photo from Library"
           />
         ) : (
@@ -131,7 +128,7 @@ export const CompressorScreen: React.FC = () => {
                 </View>
               ) : (
                 <Text style={styles.compressButtonText}>
-                  🗜️ Compress with RN Compressor{runCount > 0 ? ` (#${runCount + 1})` : ''}
+                  ⚡ Compress with Nitro{runCount > 0 ? ` (#${runCount + 1})` : ''}
                 </Text>
               )}
             </TouchableOpacity>
@@ -141,7 +138,7 @@ export const CompressorScreen: React.FC = () => {
                 <View style={styles.resultHeader}>
                   <View style={styles.resultTitleCol}>
                     <Text style={styles.resultTitle}>Compressed Output</Text>
-                    <Text style={styles.resultSubtitle}>Native Bridge • 70% Quality • 1080p</Text>
+                    <Text style={styles.resultSubtitle}>Metal GPU • 70% Quality • 1080p</Text>
                   </View>
                   <View style={styles.durationPill}>
                     <Text style={styles.durationPillText}>{duration}ms</Text>
@@ -185,6 +182,8 @@ export const CompressorScreen: React.FC = () => {
     </View>
   );
 };
+
+export default NitroScreen;
 
 const styles = StyleSheet.create({
   screen: {
@@ -254,11 +253,11 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   compressButton: {
-    backgroundColor: '#f97316',
+    backgroundColor: '#10b981',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
-    shadowColor: '#f97316',
+    shadowColor: '#10b981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -310,8 +309,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   durationPill: {
-    backgroundColor: '#fff7ed',
-    borderColor: '#fed7aa',
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -320,7 +319,7 @@ const styles = StyleSheet.create({
   durationPillText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#ea580c',
+    color: '#059669',
   },
   preview: {
     width: '100%',
@@ -365,13 +364,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff7ed',
+    backgroundColor: '#f0fdf4',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#fed7aa',
+    borderColor: '#bbf7d0',
   },
   savingsIcon: {
     fontSize: 16,
@@ -380,10 +379,10 @@ const styles = StyleSheet.create({
   savingsText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#c2410c',
+    color: '#15803d',
   },
   savingsPercent: {
     fontWeight: '800',
-    color: '#9a3412',
+    color: '#166534',
   },
 });

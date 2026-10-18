@@ -1,24 +1,19 @@
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DEFAULT_BADGE_COLOR, MIN_TOP_INSET } from './constants';
+import type { ScreenHeaderProps } from './types';
 
-interface Props {
-  title: string;
-  badge?: string;
-  badgeColor?: string;
-  subtitle: string;
-}
-
-export const ScreenHeader: React.FC<Props> = ({
+const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   badge,
-  badgeColor = '#10B981',
+  badgeColor = DEFAULT_BADGE_COLOR,
   subtitle,
 }) => {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) + 8 }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, MIN_TOP_INSET) + 8 }]}>
       <View style={styles.titleRow}>
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -38,6 +33,8 @@ export const ScreenHeader: React.FC<Props> = ({
     </View>
   );
 };
+
+export default ScreenHeader;
 
 const styles = StyleSheet.create({
   container: {
