@@ -9,7 +9,7 @@
 **react-native-nitro-image-compressor** is a blazing-fast, on-device image compression library for React Native, powered by [Nitro Modules](https://nitro.margelo.com)!
 
 - 🚀 **Direct JSI bindings** — zero bridge serialization or async round-trip overhead.
-- ⚡ **10–50x faster** than pure JavaScript and legacy bridge-based compressors.
+- ⚡ **High-performance native pipeline** — executes on dedicated background threads without blocking UI or JS event loops.
 - 🖼️ **Multi-format support** — compress and convert between **JPEG**, **PNG**, and **WebP**.
 - 📐 **Smart dimension scaling** — downscale with strict aspect ratio preservation (`maxWidth` & `maxHeight`).
 - 🔍 **Synchronous `getImageInfo()`** — instant image dimensions, byte size, and MIME type via JSI in **~0.3ms**.
@@ -229,17 +229,10 @@ interface ImageInfo {
 
 ## Performance Benchmarks
 
-Tested on an **iPhone 15 Pro** with a 12MP camera photo (4032×3024, 8.2MB):
-
-| Operation | `react-native-nitro-image-compressor` | `react-native-image-resizer` | `react-native-compressor` |
-|:---|:---:|:---:|:---:|
-| **Compress to 1920px JPEG** | **18 ms** 🔥 | 142 ms | 96 ms |
-| **Get Image Info** | **0.3 ms** *(sync JSI)* ⚡ | 12 ms *(async)* | N/A |
-| **Memory Peak** | **24 MB** 🍃 | 48 MB | 36 MB |
-| **JS Thread Blocking** | **0 ms** | 15–30 ms | 10–20 ms |
-
-> [!TIP]
-> The repository includes a complete benchmark application in the [`example/`](./example) folder with a side-by-side **Compare** tab to benchmark on your own devices.
+> [!NOTE]
+> Detailed benchmark suite and device comparisons are currently in progress and will be published in an upcoming update.
+>
+> You can benchmark directly on your own device using the included [`example/`](./example) app, which features a side-by-side **Compare** tab measuring execution times and memory footprint against other compression libraries.
 
 ---
 
