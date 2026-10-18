@@ -1,13 +1,8 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import type React from 'react';
 import { Text } from 'react-native';
-import {
-  NitroScreen,
-  ResizerScreen,
-  CompressorScreen,
-  CompareScreen,
-} from './screens';
+import { CompareScreen, CompressorScreen, NitroScreen, ResizerScreen } from './screens';
 
 const Tab = createBottomTabNavigator();
 
@@ -15,6 +10,7 @@ export const App: React.FC = () => {
   return (
     <NavigationContainer>
       <Tab.Navigator
+        initialRouteName="Compare"
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: '#007AFF',
@@ -27,9 +23,7 @@ export const App: React.FC = () => {
           name="Nitro"
           component={NitroScreen}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Text style={{ color, fontSize: 20 }}>⚡</Text>
-            ),
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>⚡</Text>,
             tabBarLabel: 'Nitro',
           }}
         />
@@ -37,9 +31,7 @@ export const App: React.FC = () => {
           name="Resizer"
           component={ResizerScreen}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Text style={{ color, fontSize: 20 }}>🖼️</Text>
-            ),
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🖼️</Text>,
             tabBarLabel: 'Resizer',
           }}
         />
@@ -47,9 +39,7 @@ export const App: React.FC = () => {
           name="Compressor"
           component={CompressorScreen}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Text style={{ color, fontSize: 20 }}>🗜️</Text>
-            ),
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🗜️</Text>,
             tabBarLabel: 'Compressor',
           }}
         />
@@ -57,9 +47,7 @@ export const App: React.FC = () => {
           name="Compare"
           component={CompareScreen}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Text style={{ color, fontSize: 20 }}>🏎️</Text>
-            ),
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏎️</Text>,
             tabBarLabel: 'Compare',
           }}
         />
