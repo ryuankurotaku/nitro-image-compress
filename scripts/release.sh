@@ -1,35 +1,42 @@
 #!/bin/bash
 #
-# release.sh — Publishes the library to NPM and creates a GitHub release.
+# release.sh — Bumps versions, updates changelog, tags, and creates a GitHub release.
 #
-# Flow:
-# 1. Publishes `react-native-nitro-image-compressor` to NPM (copies root README for npm page)
-# 2. Creates a git bump commit, tag, and GitHub release via release-it
+# The created GitHub Release automatically triggers the GitHub Actions workflow
+# (.github/workflows/publish.yml), which builds and publishes the package to NPM
+# with cryptographic build provenance.
 #
 # Usage:
-#   bun run release             # Interactive (prompts for version bump type)
-#   bun run release -- patch    # Non-interactive patch bump (0.1.0 → 0.1.1)
-#   bun run release -- minor    # Non-interactive minor bump (0.1.0 → 0.2.0)
-#   bun run release -- major    # Non-interactive major bump (0.1.0 → 1.0.0)
+#   bun run release             # Interactive (prompts for patch / minor / major)
+#   bun run release -- patch    # Auto patch bump (0.1.0 → 0.1.1)
+#   bun run release -- minor    # Auto minor bump (0.1.0 → 0.2.0)
+#   bun run release -- major    # Auto major bump (0.1.0 → 1.0.0)
 #
 # Prerequisites:
-#   - NPM_TOKEN environment variable set (or `npm login` completed)
-#   - GITHUB_TOKEN for GitHub release creation
-#   - Clean working directory recommended (but not enforced)
+#   - Clean git working directory
+#   - Push access to origin
+#   - GITHUB_TOKEN (optional, or gh auth login for GitHub CLI / release creation)
 
 set -e
 
-echo "Starting the release process..."
+echo "🔍 Running pre-release checks..."
+bun run lint-ci
+bun run typecheck
+bun run build
+
+echo "🚀 Starting release process..."
 echo "Provided options: $@"
 
-echo "Publishing 'react-native-nitro-image-compressor' to NPM"
-cd packages/react-native-nitro-image-compressor
-cp ../../README.md README.md
-bun release $@
-rm README.md
+# Run release-it from repository root:
+# 1. Prompts for version bump
+# 2. Bumps package.json in packages/ and example/
+# 3. Regenerates lockfiles via scripts/try-install-lockfiles.sh
+# 4. Generates conventional changelog
+# 5. Creates git commit and tag
+# 6. Pushes to origin and creates GitHub Release
+bun run release-it "$@"
 
-echo "Creating a Git bump commit and GitHub release"
-cd ../..
-bun run release-it $@
-
-echo "Successfully released react-native-nitro-image-compressor!"
+echo ""
+echo "🎉 Release successfully tagged and pushed to GitHub!"
+echo "📡 GitHub Actions is now publishing to NPM with provenance."
+echo "👉 Track progress in your repo's Actions tab: https://github.com/ryuankurotaku/nitro-image-compress/actions"
