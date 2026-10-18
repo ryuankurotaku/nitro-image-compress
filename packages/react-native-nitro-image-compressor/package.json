@@ -47,15 +47,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/user/react-native-nitro-image-compressor.git",
+    "url": "git+https://github.com/ryuankurotaku/nitro-image-compress.git",
     "directory": "packages/react-native-nitro-image-compressor"
   },
-  "author": "Your Name <your@email.com> (https://github.com/user)",
+  "author": "Ankur Singh <allen.ankursingh@gmail.com> (https://github.com/ryuankurotaku)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/user/react-native-nitro-image-compressor/issues"
+    "url": "https://github.com/ryuankurotaku/nitro-image-compress/issues"
   },
-  "homepage": "https://github.com/user/react-native-nitro-image-compressor#readme",
+  "homepage": "https://github.com/ryuankurotaku/nitro-image-compress#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
