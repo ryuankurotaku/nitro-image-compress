@@ -19,8 +19,8 @@ done
 
 echo "🔍 Running pre-publish verification..."
 bun run lint-ci
-bun run typecheck
 bun run build
+bun run typecheck
 
 echo "📦 Preparing package for publication..."
 cd packages/react-native-nitro-image-compressor
