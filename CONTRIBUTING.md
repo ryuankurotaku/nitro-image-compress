@@ -174,7 +174,7 @@ feat: add HEIF format support
 fix: correct EXIF rotation on Android
 perf: use inSampleSize for memory-efficient decode
 docs: update API examples in README
-chore(deps): bump id.zelory:compressor to 3.1.0
+chore(deps): bump react-native-nitro-modules to 0.18.1
 ```
 
 These map to changelog sections automatically via `@release-it/conventional-changelog`.
