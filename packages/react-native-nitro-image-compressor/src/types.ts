@@ -1,7 +1,7 @@
 export type {
-  ImageCompressor,
-  ImageFormat,
   CompressOptions,
   CompressResult,
+  ImageCompressor,
+  ImageFormat,
   ImageInfo,
 } from './specs/ImageCompressor.nitro';

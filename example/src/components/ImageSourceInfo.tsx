@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import type React from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import type { ImageSource } from '../utils/index.js';
 
 interface Props {
@@ -17,9 +17,7 @@ export const ImageSourceInfo: React.FC<Props> = ({ source }) => {
         <Text style={styles.detail}>
           {source.width} × {source.height}
         </Text>
-        <Text style={styles.detail}>
-          {(source.fileSize / 1024 / 1024).toFixed(2)} MB
-        </Text>
+        <Text style={styles.detail}>{(source.fileSize / 1024 / 1024).toFixed(2)} MB</Text>
       </View>
     </View>
   );

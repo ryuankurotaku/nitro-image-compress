@@ -8,8 +8,7 @@ let _instance: ImageCompressorSpec | undefined;
  */
 export function getImageCompressor(): ImageCompressorSpec {
   if (!_instance) {
-    _instance =
-      NitroModules.createHybridObject<ImageCompressorSpec>('ImageCompressor');
+    _instance = NitroModules.createHybridObject<ImageCompressorSpec>('ImageCompressor');
   }
   return _instance;
 }

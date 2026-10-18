@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import type React from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import type { BenchmarkResult } from '../utils/index.js';
 
 interface Props {
@@ -26,9 +26,7 @@ export const ResultCard: React.FC<Props> = ({ result }) => {
           <Text style={styles.statLabel}>Duration</Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.statValue}>
-            {(result.outputSize / 1024).toFixed(0)} KB
-          </Text>
+          <Text style={styles.statValue}>{(result.outputSize / 1024).toFixed(0)} KB</Text>
           <Text style={styles.statLabel}>Size</Text>
         </View>
         <View style={styles.stat}>

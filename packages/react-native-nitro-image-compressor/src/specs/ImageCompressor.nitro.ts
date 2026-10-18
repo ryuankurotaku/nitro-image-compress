@@ -115,8 +115,7 @@ export interface ImageInfo {
  * - **iOS**: `HybridImageCompressor.swift` (UIImage + ImageIO)
  * - **Android**: `HybridImageCompressor.kt` (native BitmapFactory + Matrix)
  */
-export interface ImageCompressor
-  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+export interface ImageCompressor extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   /**
    * Compress an image at the given URI.
    * Runs on a native background thread — does not block the JS thread.

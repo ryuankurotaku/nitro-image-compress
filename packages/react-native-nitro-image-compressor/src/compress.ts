@@ -1,9 +1,5 @@
 import { getImageCompressor } from './nitro';
-import type {
-  CompressOptions,
-  CompressResult,
-  ImageInfo,
-} from './types';
+import type { CompressOptions, CompressResult, ImageInfo } from './types';
 
 /**
  * Compress an image at the given file URI.
@@ -32,10 +28,7 @@ import type {
  * await fetch('/upload', { body: result.uri }); // data:image/jpeg;base64,...
  * ```
  */
-export const compress = (
-  uri: string,
-  options: CompressOptions = {},
-): Promise<CompressResult> => {
+export const compress = (uri: string, options: CompressOptions = {}): Promise<CompressResult> => {
   return getImageCompressor().compress(uri, {
     quality: options.quality ?? 0.7,
     maxWidth: options.maxWidth ?? 0,

@@ -1,18 +1,19 @@
-import React, { useState, useCallback } from 'react';
+import type React from 'react';
+import { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import ImageResizer from 'react-native-image-resizer';
-import { getImageInfo } from 'react-native-nitro-image-compressor';
 import type { ImageInfo } from 'react-native-nitro-image-compressor';
+import { getImageInfo } from 'react-native-nitro-image-compressor';
 
 interface ResizerResult {
   uri: string;
@@ -73,9 +74,8 @@ export const ResizerScreen: React.FC = () => {
     }
   }, [sourceUri]);
 
-  const savings = sourceInfo && result
-    ? ((1 - result.size / sourceInfo.size) * 100).toFixed(1)
-    : null;
+  const savings =
+    sourceInfo && result ? ((1 - result.size / sourceInfo.size) * 100).toFixed(1) : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -94,7 +94,8 @@ export const ResizerScreen: React.FC = () => {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Source Image</Text>
           <Text style={styles.infoText}>
-            {sourceInfo.width} × {sourceInfo.height} • {(sourceInfo.size / 1024 / 1024).toFixed(2)} MB
+            {sourceInfo.width} × {sourceInfo.height} • {(sourceInfo.size / 1024 / 1024).toFixed(2)}{' '}
+            MB
           </Text>
           <Text style={styles.infoText}>{sourceInfo.mimeType}</Text>
         </View>
@@ -128,13 +129,13 @@ export const ResizerScreen: React.FC = () => {
               <Text style={styles.statLabel}>Size</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{result.width}×{result.height}</Text>
+              <Text style={styles.statValue}>
+                {result.width}×{result.height}
+              </Text>
               <Text style={styles.statLabel}>Dimensions</Text>
             </View>
           </View>
-          {savings && (
-            <Text style={styles.savings}>📉 Saved {savings}%</Text>
-          )}
+          {savings && <Text style={styles.savings}>📉 Saved {savings}%</Text>}
         </View>
       )}
     </ScrollView>

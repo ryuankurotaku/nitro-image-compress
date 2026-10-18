@@ -1,15 +1,15 @@
-import { compress as nitroCompress, getImageInfo } from 'react-native-nitro-image-compressor';
-import ImageResizer from 'react-native-image-resizer';
 import { Image as RNCompressor } from 'react-native-compressor';
+import ImageResizer from 'react-native-image-resizer';
+import { getImageInfo, compress as nitroCompress } from 'react-native-nitro-image-compressor';
 import type { BenchmarkResult, ImageSource } from './types';
 
 /**
  * Standard compression parameters used across all benchmarks.
  * Ensures a fair apples-to-apples comparison between libraries.
  */
-const QUALITY = 0.7;       // 70% JPEG quality
-const MAX_WIDTH = 1920;    // Full HD width cap
-const MAX_HEIGHT = 1080;   // Full HD height cap
+const QUALITY = 0.7; // 70% JPEG quality
+const MAX_WIDTH = 1920; // Full HD width cap
+const MAX_HEIGHT = 1080; // Full HD height cap
 
 /**
  * Runs a compression benchmark across all three libraries sequentially.
@@ -25,9 +25,7 @@ const MAX_HEIGHT = 1080;   // Full HD height cap
  * @param source - The source image to compress (from image picker)
  * @returns Array of benchmark results, one per library
  */
-export const runBenchmark = async (
-  source: ImageSource,
-): Promise<BenchmarkResult[]> => {
+export const runBenchmark = async (source: ImageSource): Promise<BenchmarkResult[]> => {
   const results: BenchmarkResult[] = [];
 
   // Run sequentially to avoid CPU contention affecting timing
@@ -87,9 +85,9 @@ const benchmarkImageResizer = async (uri: string): Promise<BenchmarkResult> => {
       MAX_HEIGHT,
       'JPEG',
       Math.round(QUALITY * 100), // This lib expects 0-100 integer
-      0,         // rotation
+      0, // rotation
       undefined, // output path (use default temp)
-      false,     // keep metadata
+      false, // keep metadata
     );
     const duration = performance.now() - start;
 

@@ -1,17 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import type React from 'react';
+import { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { getImageInfo } from 'react-native-nitro-image-compressor';
-import { BenchmarkChart, ResultCard, ImageSourceInfo } from '../components';
-import { runBenchmark } from '../utils';
+import { BenchmarkChart, ImageSourceInfo, ResultCard } from '../components';
 import type { BenchmarkResult, ImageSource } from '../utils';
+import { runBenchmark } from '../utils';
 
 export const CompareScreen: React.FC = () => {
   const [source, setSource] = useState<ImageSource | null>(null);
@@ -51,9 +52,10 @@ export const CompareScreen: React.FC = () => {
   }, [source]);
 
   const validResults = results.filter((r) => !r.error);
-  const winner = validResults.length > 0
-    ? validResults.reduce((best, r) => (r.duration < best.duration ? r : best))
-    : null;
+  const winner =
+    validResults.length > 0
+      ? validResults.reduce((best, r) => (r.duration < best.duration ? r : best))
+      : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -79,7 +81,7 @@ export const CompareScreen: React.FC = () => {
           {loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color="#fff" size="small" />
-              <Text style={styles.buttonText}>  Running all 3...</Text>
+              <Text style={styles.buttonText}> Running all 3...</Text>
             </View>
           ) : (
             <Text style={styles.buttonText}>
@@ -111,8 +113,8 @@ export const CompareScreen: React.FC = () => {
       {!source && (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Pick an image to run a fair comparison across all 3 compression libraries
-            using identical parameters:
+            Pick an image to run a fair comparison across all 3 compression libraries using
+            identical parameters:
           </Text>
           <Text style={styles.paramText}>• Quality: 70% JPEG</Text>
           <Text style={styles.paramText}>• Max: 1920 × 1080</Text>

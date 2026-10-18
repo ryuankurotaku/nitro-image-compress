@@ -1,8 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -12,7 +10,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "complexity": {
         "noUselessFragments": "warn",
         "noForEach": "off"
@@ -45,15 +43,27 @@
       "trailingCommas": "none"
     }
   },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
-    "ignore": [
-      "node_modules",
-      "lib",
-      "dist",
-      "build",
-      "*.lock",
-      "*.lockb",
-      "nitrogen/generated"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/lib",
+      "!**/dist",
+      "!**/build",
+      "!**/.cxx",
+      "!**/Pods",
+      "!**/.gradle",
+      "!**/*.lock",
+      "!**/*.lockb",
+      "!**/nitrogen/generated",
+      "!**/*.xcodeproj",
+      "!**/*.xcworkspace",
+      "!**/*.xcassets"
     ]
   },
   "overrides": [
