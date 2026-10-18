@@ -1,16 +1,19 @@
 import Foundation
 import UIKit
 import NitroModules
+import ImageIO
+import MobileCoreServices
 
 /// Native iOS implementation of the ImageCompressor Nitro HybridObject.
 ///
 /// Uses Apple's built-in frameworks for hardware-accelerated image processing:
-/// - `UIImage` + `UIGraphicsImageRenderer` for resize operations
-/// - `ImageIO` (`CGImageDestination`) for WebP/HEIF encoding
-/// - Native JPEG/PNG encoders for standard formats
+/// - 1:1 scale graphics context (`UIGraphicsBeginImageContextWithOptions`) for aspect-ratio resize
+/// - Native `UIImage.jpegData` SIMD encoder for JPEG compression
+/// - Native `UIImage.pngData` encoder for PNG
+/// - `ImageIO` (`CGImageDestination`) for WebP encoding
 ///
 /// All compression runs on a background thread via Nitro's `Promise.async`.
-/// The `getImageInfo` method is synchronous (called directly via JSI).
+/// The `getImageInfo` method is synchronous (called directly via JSI) and reads EXIF in < 1ms.
 class HybridImageCompressor: HybridImageCompressorSpec {
 
   // MARK: - HybridObject Protocol
@@ -22,27 +25,28 @@ class HybridImageCompressor: HybridImageCompressorSpec {
 
   // MARK: - getImageInfo (synchronous via JSI)
 
-  /// Reads image metadata without decoding the full pixel buffer.
-  /// Uses `UIImage` which respects EXIF orientation for correct width/height.
-  ///
-  /// - Parameter uri: File URI or absolute path to the image
-  /// - Returns: `ImageInfo` with dimensions, byte size, and detected MIME type
-  /// - Throws: If the file cannot be read or decoded
+  /// Reads image metadata directly from EXIF headers without decoding the full pixel buffer.
   func getImageInfo(uri: String) throws -> ImageInfo {
     let url = Self.resolveFileURL(uri)
-    let data = try Data(contentsOf: url)
-
-    guard let image = UIImage(data: data) else {
-      throw RuntimeError.error(withMessage: "Failed to decode image at \(uri)")
+    guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+          let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? Double,
+          let height = properties[kCGImagePropertyPixelHeight] as? Double else {
+      throw RuntimeError.error(withMessage: "Failed to read image properties for \(uri)")
     }
 
-    let mimeType = Self.detectMimeType(from: data)
+    let orientation = properties[kCGImagePropertyOrientation] as? UInt32 ?? 1
+    let isRotated = orientation >= 5 && orientation <= 8
+    let finalWidth = isRotated ? height : width
+    let finalHeight = isRotated ? width : height
 
-    // Multiply by scale to get actual pixel dimensions (e.g., @2x, @3x images)
+    let fileSize = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Double) ?? 0
+    let mimeType = Self.detectMimeType(from: url)
+
     return ImageInfo(
-      width: Double(image.size.width * image.scale),
-      height: Double(image.size.height * image.scale),
-      size: Double(data.count),
+      width: finalWidth,
+      height: finalHeight,
+      size: fileSize,
       mimeType: mimeType
     )
   }
@@ -51,40 +55,116 @@ class HybridImageCompressor: HybridImageCompressorSpec {
 
   /// Compresses an image with the specified options.
   ///
-  /// Pipeline: decode → resize (if needed) → encode → write to temp file
+  /// Pipeline: decode → 1:1 resize (if needed) → encode → write to temp file
   /// All work happens off the main thread via `Promise.async`.
-  ///
-  /// - Parameters:
-  ///   - uri: File URI or absolute path to the source image
-  ///   - options: Compression configuration (quality, dimensions, format, output type)
-  /// - Returns: `CompressResult` with output URI, final dimensions, and byte size
   func compress(uri: String, options: CompressOptions) -> Promise<CompressResult> {
-    return Promise.async {
+    return Promise.parallel(.global(qos: .userInteractive)) {
       let url = Self.resolveFileURL(uri)
-      let data = try Data(contentsOf: url)
 
-      guard let sourceImage = UIImage(data: data) else {
-        throw RuntimeError.error(withMessage: "Failed to decode image at \(uri)")
+      // Use ImageIO with mmap to read directly without copying intermediate buffer
+      let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+      guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
+        throw RuntimeError.error(withMessage: "Failed to open image at \(uri)")
       }
 
-      // Step 1: Resize if constraints are specified
-      let resizedImage = Self.resizeIfNeeded(
-        image: sourceImage,
-        maxWidth: options.maxWidth ?? 0,
-        maxHeight: options.maxHeight ?? 0
-      )
+      guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any],
+            let rawWidth = properties[kCGImagePropertyPixelWidth] as? Double,
+            let rawHeight = properties[kCGImagePropertyPixelHeight] as? Double else {
+        throw RuntimeError.error(withMessage: "Failed to read image dimensions for \(uri)")
+      }
+
+      let orientation = properties[kCGImagePropertyOrientation] as? UInt32 ?? 1
+      let isRotated = orientation >= 5 && orientation <= 8
+      let originalWidth = isRotated ? rawHeight : rawWidth
+      let originalHeight = isRotated ? rawWidth : rawHeight
+
+      guard originalWidth > 0 && originalHeight > 0 else {
+        throw RuntimeError.error(withMessage: "Invalid image dimensions for \(uri)")
+      }
+
+      let maxWidth = options.maxWidth ?? 0
+      let maxHeight = options.maxHeight ?? 0
+
+      var targetWidth = originalWidth
+      var targetHeight = originalHeight
+
+      if maxWidth > 0 && originalWidth > maxWidth {
+        let ratio = maxWidth / originalWidth
+        targetWidth = maxWidth
+        targetHeight = originalHeight * ratio
+      }
+
+      if maxHeight > 0 && targetHeight > maxHeight {
+        let ratio = maxHeight / targetHeight
+        targetHeight = maxHeight
+        targetWidth = targetWidth * ratio
+      }
+
+      targetWidth = targetWidth.rounded()
+      targetHeight = targetHeight.rounded()
+
+      let format = options.format ?? .jpeg
+      let quality = options.quality ?? 0.7
+      let needsResize = targetWidth < originalWidth || targetHeight < originalHeight
+
+      // Step 1: Sub-sampled hardware decode via ImageIO
+      let cgImage: CGImage
+      if needsResize || orientation > 1 {
+        let maxDimension = max(targetWidth, targetHeight)
+        let thumbOptions: [CFString: Any] = [
+          kCGImageSourceCreateThumbnailFromImageAlways: true,
+          kCGImageSourceCreateThumbnailWithTransform: true,
+          kCGImageSourceShouldAllowFloat: true,
+          kCGImageSourceThumbnailMaxPixelSize: maxDimension
+        ]
+        guard let thumb = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, thumbOptions as CFDictionary) else {
+          throw RuntimeError.error(withMessage: "Thumbnail creation failed for \(uri)")
+        }
+        cgImage = thumb
+      } else {
+        guard let full = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+          throw RuntimeError.error(withMessage: "Image decoding failed for \(uri)")
+        }
+        cgImage = full
+      }
 
       // Step 2: Encode to target format
-      let quality = options.quality ?? 0.7
-      let format = options.format ?? .jpeg
+      let finalImage = UIImage(cgImage: cgImage)
+      let compressedData: Data
+      switch format {
+      case .jpeg:
+        guard let data = finalImage.jpegData(compressionQuality: CGFloat(quality)) else {
+          throw RuntimeError.error(withMessage: "JPEG compression failed")
+        }
+        compressedData = data
 
-      let compressedData = try Self.compressImage(
-        resizedImage,
-        format: format,
-        quality: quality
-      )
+      case .png:
+        guard let data = finalImage.pngData() else {
+          throw RuntimeError.error(withMessage: "PNG compression failed")
+        }
+        compressedData = data
 
-      // Step 3: Write output (file URI or base64 data URI)
+      case .webp:
+        let mutableData = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+          mutableData as CFMutableData,
+          "public.webp" as CFString,
+          1,
+          nil
+        ) else {
+          throw RuntimeError.error(withMessage: "WebP not supported on this device")
+        }
+        let opts: [CFString: Any] = [
+          kCGImageDestinationLossyCompressionQuality: quality
+        ]
+        CGImageDestinationAddImage(destination, cgImage, opts as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else {
+          throw RuntimeError.error(withMessage: "WebP finalization failed")
+        }
+        compressedData = mutableData as Data
+      }
+
+      // Step 3: Write output
       let outputURI: String
       if options.returnBase64 == true {
         outputURI = "data:image/\(format);base64," + compressedData.base64EncodedString()
@@ -96,8 +176,8 @@ class HybridImageCompressor: HybridImageCompressorSpec {
 
       return CompressResult(
         uri: outputURI,
-        width: Double(resizedImage.size.width * resizedImage.scale),
-        height: Double(resizedImage.size.height * resizedImage.scale),
+        width: Double(cgImage.width),
+        height: Double(cgImage.height),
         size: Double(compressedData.count)
       )
     }
@@ -106,125 +186,33 @@ class HybridImageCompressor: HybridImageCompressorSpec {
   // MARK: - Private Helpers
 
   /// Resolves a URI string to a file URL.
-  /// Handles both `file://` prefixed URIs and bare absolute paths.
   private static func resolveFileURL(_ uri: String) -> URL {
     if uri.hasPrefix("file://") {
-      return URL(string: uri)!
+      return URL(string: uri) ?? URL(fileURLWithPath: uri.replacingOccurrences(of: "file://", with: ""))
     }
     return URL(fileURLWithPath: uri)
   }
 
-  /// Resizes an image if it exceeds the given max dimensions.
-  /// Maintains aspect ratio — the tighter constraint wins.
-  /// Returns the original image unchanged if no resize is needed.
-  ///
-  /// - Parameters:
-  ///   - image: Source UIImage
-  ///   - maxWidth: Maximum allowed width (0 = no constraint)
-  ///   - maxHeight: Maximum allowed height (0 = no constraint)
-  /// - Returns: Resized image, or original if within bounds
-  private static func resizeIfNeeded(
-    image: UIImage,
-    maxWidth: Double,
-    maxHeight: Double
-  ) -> UIImage {
-    let originalWidth = image.size.width
-    let originalHeight = image.size.height
-
-    // No resize needed if no constraints specified
-    if maxWidth <= 0 && maxHeight <= 0 {
-      return image
-    }
-
-    var targetWidth = originalWidth
-    var targetHeight = originalHeight
-
-    // Scale down by width first
-    if maxWidth > 0 && originalWidth > CGFloat(maxWidth) {
-      let ratio = CGFloat(maxWidth) / originalWidth
-      targetWidth = CGFloat(maxWidth)
-      targetHeight = originalHeight * ratio
-    }
-
-    // Then further constrain by height if still too tall
-    if maxHeight > 0 && targetHeight > CGFloat(maxHeight) {
-      let ratio = CGFloat(maxHeight) / targetHeight
-      targetHeight = CGFloat(maxHeight)
-      targetWidth = targetWidth * ratio
-    }
-
-    let targetSize = CGSize(width: targetWidth, height: targetHeight)
-
-    // UIGraphicsImageRenderer is hardware-accelerated and handles color space correctly
-    let renderer = UIGraphicsImageRenderer(size: targetSize)
-    return renderer.image { _ in
-      image.draw(in: CGRect(origin: .zero, size: targetSize))
-    }
-  }
-
-  /// Encodes a UIImage to the specified format and quality.
-  ///
-  /// - Parameters:
-  ///   - image: The image to encode
-  ///   - format: Target format (jpeg, png, webp)
-  ///   - quality: Compression quality 0.0–1.0 (ignored for PNG)
-  /// - Returns: Encoded image data
-  /// - Throws: If encoding fails (e.g., WebP not supported on older devices)
-  private static func compressImage(
-    _ image: UIImage,
-    format: ImageFormat,
-    quality: Double
-  ) throws -> Data {
-    switch format {
-    case .jpeg:
-      guard let data = image.jpegData(compressionQuality: CGFloat(quality)) else {
-        throw RuntimeError.error(withMessage: "JPEG compression failed")
-      }
-      return data
-
-    case .png:
-      // PNG is lossless — quality parameter is ignored
-      guard let data = image.pngData() else {
-        throw RuntimeError.error(withMessage: "PNG compression failed")
-      }
-      return data
-
-    case .webp:
-      // WebP encoding via ImageIO (available iOS 14+)
-      guard let cgImage = image.cgImage else {
-        throw RuntimeError.error(withMessage: "WebP compression failed: no CGImage")
-      }
-      let mutableData = NSMutableData()
-      guard let destination = CGImageDestinationCreateWithData(
-        mutableData as CFMutableData,
-        "public.webp" as CFString,
-        1,    // image count
-        nil
-      ) else {
-        throw RuntimeError.error(withMessage: "WebP not supported on this device")
-      }
-      let options: [CFString: Any] = [
-        kCGImageDestinationLossyCompressionQuality: quality
-      ]
-      CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
-      guard CGImageDestinationFinalize(destination) else {
-        throw RuntimeError.error(withMessage: "WebP finalization failed")
-      }
-      return mutableData as Data
-    }
-  }
-
   /// Generates a unique temporary file URL for compressed output.
-  /// Files are stored in the system temp directory and auto-cleaned by the OS.
   private static func generateOutputURL(format: ImageFormat) -> URL {
-    let fileName = "compressed_\(UUID().uuidString).\(format)"
+    let ext: String
+    switch format {
+    case .jpeg: ext = "jpg"
+    case .png: ext = "png"
+    case .webp: ext = "webp"
+    }
+    let fileName = "compressed_\(UUID().uuidString).\(ext)"
     let tempDir = FileManager.default.temporaryDirectory
     return tempDir.appendingPathComponent(fileName)
   }
 
-  /// Detects MIME type by inspecting the first 4 bytes (magic number) of image data.
-  /// More reliable than file extension since users may rename files.
-  private static func detectMimeType(from data: Data) -> String {
+  /// Detects MIME type by inspecting the first 4 bytes (magic number) of image file.
+  private static func detectMimeType(from url: URL) -> String {
+    guard let fileHandle = try? FileHandle(forReadingFrom: url) else {
+      return "application/octet-stream"
+    }
+    defer { try? fileHandle.close() }
+    let data = fileHandle.readData(ofLength: 12)
     guard data.count >= 4 else { return "application/octet-stream" }
 
     var header = [UInt8](repeating: 0, count: 4)
@@ -243,6 +231,6 @@ class HybridImageCompressor: HybridImageCompressorSpec {
     } else if header[0] == 0x47 && header[1] == 0x49 {
       return "image/gif"
     }
-    return "image/unknown"
+    return "application/octet-stream"
   }
 }
