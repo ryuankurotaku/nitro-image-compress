@@ -42,6 +42,9 @@ export const CompareScreen: React.FC = () => {
     setLoading(true);
     setResults([]);
 
+    // Yield so React flushes the loading state and becomes completely idle before benchmarking
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     try {
       const benchResults = await runBenchmark(source);
       setResults(benchResults);

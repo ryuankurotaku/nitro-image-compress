@@ -30,7 +30,9 @@ export const runBenchmark = async (source: ImageSource): Promise<BenchmarkResult
 
   // Run sequentially to avoid CPU contention affecting timing
   results.push(await benchmarkNitro(source.uri));
+  await new Promise((resolve) => setTimeout(resolve, 20));
   results.push(await benchmarkImageResizer(source.uri));
+  await new Promise((resolve) => setTimeout(resolve, 20));
   results.push(await benchmarkRNCompressor(source.uri));
 
   return results;
