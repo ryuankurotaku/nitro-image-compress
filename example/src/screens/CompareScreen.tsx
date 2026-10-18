@@ -10,7 +10,13 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { getImageInfo } from 'react-native-nitro-image-compressor';
-import { BenchmarkChart, ImageSourceInfo, ResultCard } from '../components';
+import {
+  BenchmarkChart,
+  EmptyState,
+  ImageSourceInfo,
+  ResultCard,
+  ScreenHeader,
+} from '../components';
 import type { BenchmarkResult, ImageSource } from '../utils';
 import { runBenchmark } from '../utils';
 
@@ -28,7 +34,7 @@ export const CompareScreen: React.FC = () => {
     const info = getImageInfo(asset.uri);
     setSource({
       uri: asset.uri,
-      fileName: asset.fileName ?? 'Unknown',
+      fileName: asset.fileName ?? 'Photo',
       fileSize: info.size,
       width: info.width,
       height: info.height,
@@ -61,113 +67,166 @@ export const CompareScreen: React.FC = () => {
       : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>🏎️ Head-to-Head</Text>
-        <Text style={styles.subtitle}>Same image, same params, all 3 libraries</Text>
-      </View>
+    <View style={styles.screen}>
+      <ScreenHeader
+        title="🏎️ Head-to-Head"
+        badge="BENCHMARK"
+        badgeColor="#4f46e5"
+        subtitle="Same image, same params, 3 libraries"
+      />
 
-      <TouchableOpacity style={styles.pickButton} onPress={pickImage}>
-        <Text style={styles.buttonText}>
-          {source ? '🔄 Pick Different Image' : '📷 Pick Image'}
-        </Text>
-      </TouchableOpacity>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {!source ? (
+          <EmptyState
+            onPickPress={pickImage}
+            title="Benchmark 3 Libraries"
+            description="Pick a photo to measure execution time, output size, and image quality side-by-side."
+            buttonLabel="Choose Image from Library"
+          />
+        ) : (
+          <>
+            <ImageSourceInfo source={source} onChangePress={pickImage} />
 
-      {source && <ImageSourceInfo source={source} />}
+            <TouchableOpacity
+              style={[styles.benchButton, loading && styles.disabled]}
+              onPress={startBenchmark}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.benchButtonText}> Running all 3 libraries...</Text>
+                </View>
+              ) : (
+                <Text style={styles.benchButtonText}>
+                  🚀 Run Benchmark{runCount > 0 ? ` (#${runCount + 1})` : ''}
+                </Text>
+              )}
+            </TouchableOpacity>
 
-      {source && (
-        <TouchableOpacity
-          style={[styles.benchButton, loading && styles.disabled]}
-          onPress={startBenchmark}
-          disabled={loading}
-        >
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color="#fff" size="small" />
-              <Text style={styles.buttonText}> Running all 3...</Text>
-            </View>
-          ) : (
-            <Text style={styles.buttonText}>
-              🚀 Run Benchmark{runCount > 0 ? ` (#${runCount + 1})` : ''}
-            </Text>
-          )}
-        </TouchableOpacity>
-      )}
+            {winner && (
+              <View style={styles.winnerBanner}>
+                <View style={styles.trophyCircle}>
+                  <Text style={styles.trophyIcon}>🏆</Text>
+                </View>
+                <View style={styles.winnerInfo}>
+                  <Text style={styles.winnerTitle}>Fastest Library</Text>
+                  <Text style={styles.winnerText}>
+                    {winner.library} won at{' '}
+                    <Text style={styles.winnerHighlight}>{winner.duration}ms</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
 
-      {winner && (
-        <View style={styles.winnerBanner}>
-          <Text style={styles.winnerText}>
-            🏆 Winner: {winner.library} — {winner.duration}ms
-          </Text>
-        </View>
-      )}
+            {validResults.length > 0 && <BenchmarkChart results={validResults} />}
 
-      {validResults.length > 0 && <BenchmarkChart results={validResults} />}
-
-      {results.length > 0 && (
-        <View style={styles.resultsSection}>
-          <Text style={styles.sectionTitle}>Individual Results</Text>
-          {results.map((result) => (
-            <ResultCard key={result.library} result={result} />
-          ))}
-        </View>
-      )}
-
-      {!source && (
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            Pick an image to run a fair comparison across all 3 compression libraries using
-            identical parameters:
-          </Text>
-          <Text style={styles.paramText}>• Quality: 70% JPEG</Text>
-          <Text style={styles.paramText}>• Max: 1920 × 1080</Text>
-          <Text style={styles.paramText}>• Metric: wall-clock time (ms)</Text>
-        </View>
-      )}
-    </ScrollView>
+            {results.length > 0 && (
+              <View style={styles.resultsSection}>
+                <Text style={styles.sectionTitle}>Library Breakdown</Text>
+                {results.map((result) => (
+                  <ResultCard key={result.library} result={result} />
+                ))}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  content: { padding: 20, paddingBottom: 40 },
-  header: { marginBottom: 20 },
-  title: { fontSize: 22, fontWeight: '800', color: '#1a1a1a' },
-  subtitle: { fontSize: 13, color: '#666', marginTop: 4 },
-  pickButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
+  screen: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
   },
   benchButton: {
-    backgroundColor: '#5856D6',
+    backgroundColor: '#4f46e5',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
+    marginVertical: 8,
+    shadowColor: '#4f46e5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  disabled: {
+    opacity: 0.65,
+  },
+  benchButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  winnerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  trophyCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#d1fae5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  trophyIcon: {
+    fontSize: 20,
+  },
+  winnerInfo: {
+    flex: 1,
+  },
+  winnerTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  winnerText: {
+    fontSize: 13,
+    color: '#065f46',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  winnerHighlight: {
+    fontWeight: '800',
+    color: '#047857',
+  },
+  resultsSection: {
     marginTop: 12,
   },
-  disabled: { opacity: 0.7 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  loadingRow: { flexDirection: 'row', alignItems: 'center' },
-  winnerBanner: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFE69C',
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    marginTop: 8,
   },
-  winnerText: { fontSize: 15, fontWeight: '700', color: '#664D03' },
-  resultsSection: { marginTop: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8 },
-  infoBox: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 24,
-  },
-  infoText: { fontSize: 13, color: '#555', marginBottom: 8 },
-  paramText: { fontSize: 12, color: '#666', marginLeft: 8, marginTop: 2 },
 });
