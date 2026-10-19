@@ -1,6 +1,6 @@
 {
   "name": "react-native-nitro-image-compressor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "High-performance on-device image compression for React Native using Nitro Modules",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
