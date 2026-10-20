@@ -16,12 +16,14 @@ jobs:
     name: Build & Publish to NPM
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # Required for creating/pushing git tags and GitHub releases
       id-token: write # Required for npm OIDC trusted publishing & provenance
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -40,4 +42,6 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run Release Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./scripts/release.sh ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
