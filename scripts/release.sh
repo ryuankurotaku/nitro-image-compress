@@ -45,7 +45,6 @@ fi
 if [ "$DRY_RUN" = true ]; then
   echo "🧪 Running npm publish in dry-run mode..."
   npm publish --dry-run
-  echo "🧪 [dry-run] Would create and push Git tag $TAG to GitHub"
 else
   echo "🚀 Publishing react-native-nitro-image-compressor@$VERSION to NPM..."
   npm publish --access public $EXTRA_FLAGS
@@ -53,31 +52,7 @@ else
   echo "🧹 Cleaning temporary files..."
   rm -f "$README_TMP"
   trap - EXIT
-
-  echo "🏷️ Creating Git tag $TAG..."
-  cd "$REPO_ROOT"
-
-  if [ "$GITHUB_ACTIONS" = "true" ]; then
-    git config user.name "github-actions[bot]"
-    git config user.email "github-actions[bot]@users.noreply.github.com"
-  fi
-
-  if git rev-parse "$TAG" >/dev/null 2>&1; then
-    echo "⚠️ Git tag $TAG already exists locally. Updating tag pointer..."
-    git tag -fa "$TAG" -m "Release $TAG"
-  else
-    git tag -a "$TAG" -m "Release $TAG"
-  fi
-
-  echo "📤 Pushing tag $TAG to GitHub (origin)..."
-  git push origin "$TAG"
-
-  # If GitHub CLI is available, also create/sync GitHub Release
-  if command -v gh >/dev/null 2>&1; then
-    echo "🐙 Creating GitHub Release for $TAG..."
-    gh release create "$TAG" --title "$TAG" --generate-notes || true
-  fi
 fi
 
-echo "✅ Release script completed successfully for $TAG!"
+echo "✅ Package react-native-nitro-image-compressor@$VERSION published successfully!"
 

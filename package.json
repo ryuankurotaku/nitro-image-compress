@@ -15,7 +15,7 @@
     "lint-ci": "biome check",
     "format": "biome format --write",
     "clean": "git clean -dfx",
-    "release": "./scripts/release.sh",
+    "release": "release-it",
     "lib": "bun --cwd packages/react-native-nitro-image-compressor",
     "example": "bun --cwd example"
   },
