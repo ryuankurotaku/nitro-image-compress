@@ -14,6 +14,19 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
+# Filter out obsolete RCT-Folly dependency requested by legacy libraries under RN 0.85
+module ::Pod
+  class Specification
+    module DSL
+      alias_method :orig_dependency, :dependency
+      def dependency(*args)
+        return if args.first == 'RCT-Folly'
+        orig_dependency(*args)
+      end
+    end
+  end
+end
+
 target 'NitroImageCompressExample' do
   config = use_native_modules!
 
