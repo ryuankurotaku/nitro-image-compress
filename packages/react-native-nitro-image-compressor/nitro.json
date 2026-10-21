@@ -9,8 +9,14 @@
   },
   "autolinking": {
     "ImageCompressor": {
-      "swift": "HybridImageCompressor",
-      "kotlin": "HybridImageCompressor"
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridImageCompressor"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridImageCompressor"
+      }
     }
   },
   "ignorePaths": ["node_modules", "example", "lib"]
