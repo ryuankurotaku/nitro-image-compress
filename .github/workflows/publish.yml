@@ -1,110 +1,87 @@
-name: Release & Publish to NPM
+name: Publish Release to NPM
 
 on:
-  schedule:
-    # Runs automatically every Monday at 09:00 UTC
-    - cron: '0 9 * * 1'
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      increment:
-        description: 'Version bump (auto, patch, minor, major, or publish-only)'
-        required: false
-        default: 'auto'
-        type: choice
-        options:
-          - auto
-          - patch
-          - minor
-          - major
-          - publish-only
-      dry_run:
-        description: 'Dry run (test build and packaging without publishing or pushing)'
-        required: false
-        default: false
-        type: boolean
+
+concurrency: publish-release
 
 jobs:
-  release-and-publish:
-    name: Release & Publish
+  publish-release:
+    name: Publish Release
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required for creating git tags, commits, and GitHub releases
-      id-token: write # Required for npm OIDC trusted publishing & provenance
+      contents: write # To create Git tags and GitHub releases
+      id-token: write # For npm OIDC trusted publishing & provenance
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Full git history required for conventional commits and changelog
+          fetch-depth: 0
+
+      - name: Check if current version needs publishing
+        id: check_version
+        run: |
+          PKG_VERSION=$(node -p "require('./packages/react-native-nitro-image-compressor/package.json').version")
+          TAG="v$PKG_VERSION"
+          echo "Current package version: $PKG_VERSION (tag: $TAG)"
+          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "ℹ️ Tag $TAG already exists on repository. Skipping publish."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "🚀 Tag $TAG does not exist yet. Triggering publish!"
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Bun
+        if: steps.check_version.outputs.should_publish == 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Setup Node.js (v22 with OIDC support)
+        if: steps.check_version.outputs.should_publish == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Upgrade npm CLI for Trusted Publishing
+        if: steps.check_version.outputs.should_publish == 'true'
         run: npm install -g npm@latest
 
       - name: Install dependencies
+        if: steps.check_version.outputs.should_publish == 'true'
         run: bun install --frozen-lockfile
 
-      - name: Check for new commits since last release
-        id: check_changes
-        run: |
-          # If triggered directly by a GitHub Release or publish-only, skip release-it step
-          if [ "${{ github.event_name }}" = "release" ] || [ "${{ github.event.inputs.increment }}" = "publish-only" ]; then
-            echo "ℹ️ Triggered via direct release or publish-only. Skipping release-it bump."
-            echo "should_release=false" >> "$GITHUB_OUTPUT"
-            echo "should_publish=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+      - name: Build & Publish to NPM
+        if: steps.check_version.outputs.should_publish == 'true'
+        run: ./scripts/release.sh
 
-          LATEST_TAG=$(git describe --tags --abbrev=0)
-          COMMITS_COUNT=$(git rev-list "${LATEST_TAG}..HEAD" --count)
-          echo "ℹ️ Found $COMMITS_COUNT commit(s) since $LATEST_TAG."
-
-          if [ "$COMMITS_COUNT" -eq 0 ]; then
-            echo "ℹ️ No new commits since $LATEST_TAG. Skipping release and publish."
-            echo "should_release=false" >> "$GITHUB_OUTPUT"
-            echo "should_publish=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_release=true" >> "$GITHUB_OUTPUT"
-            echo "should_publish=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Configure Git Bot
-        if: steps.check_changes.outputs.should_release == 'true'
+      - name: Create Git Tag & Push
+        if: steps.check_version.outputs.should_publish == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="${{ steps.check_version.outputs.tag }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
 
-      - name: Run release-it (Bump, Changelog, Tag & GitHub Release)
-        if: steps.check_changes.outputs.should_release == 'true'
+      - name: Create GitHub Release
+        if: steps.check_version.outputs.should_publish == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          INCREMENT_ARG=""
-          if [ "${{ github.event.inputs.increment }}" != "" ] && [ "${{ github.event.inputs.increment }}" != "auto" ]; then
-            INCREMENT_ARG="${{ github.event.inputs.increment }}"
-          fi
+          TAG="${{ steps.check_version.outputs.tag }}"
+          gh release create "$TAG" --title "$TAG" --generate-notes
 
-          DRY_RUN_ARG=""
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            DRY_RUN_ARG="--dry-run"
-          fi
-
-          echo "🚀 Running release-it..."
-          bun x release-it $INCREMENT_ARG --ci $DRY_RUN_ARG
-
-      - name: Build & Publish to NPM
-        if: steps.check_changes.outputs.should_publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./scripts/release.sh ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+      - name: Cleanup Release Branch
+        if: steps.check_version.outputs.should_publish == 'true'
+        run: |
+          TAG="${{ steps.check_version.outputs.tag }}"
+          git push origin --delete "release/$TAG" 2>/dev/null || true

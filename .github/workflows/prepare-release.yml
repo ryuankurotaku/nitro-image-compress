@@ -1,0 +1,45 @@
+name: Prepare Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency: prepare-release
+
+jobs:
+  prepare-release-pr:
+    name: Prepare Release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # To create & push release/v* branch
+      pull-requests: write  # To open Release PR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Configure Git Bot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run prepare-release script
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/prepare-release.sh ${{ github.event.inputs.bump || 'patch' }}
