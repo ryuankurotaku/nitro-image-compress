@@ -3,7 +3,7 @@ PODS:
   - hermes-engine (250829098.0.10):
     - hermes-engine/Pre-built (= 250829098.0.10)
   - hermes-engine/Pre-built (250829098.0.10)
-  - NitroImageCompress (0.1.0):
+  - NitroImageCompress (0.1.1):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -26,7 +26,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - NitroModules (0.18.2):
+  - NitroModules (0.37.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1449,8 +1449,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-compressor (1.19.4):
+  - react-native-compressor (2.0.3):
     - hermes-engine
+    - NitroModules
     - RCTRequired
     - RCTTypeSafety
     - React-Core
@@ -2275,8 +2276,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
   hermes-engine: aa15f9a4c027229c2ed2df00051d7f5ea6f98f25
-  NitroImageCompress: 99affabd68c19abb6df1311f4176af9f845b19eb
-  NitroModules: 68098bb54ca7f70e0eeaea6cb0a94a26ae4cfb29
+  NitroImageCompress: da5391876e40e8c9ee18117b8edeeadf02fb90cf
+  NitroModules: 38f8754287858ff1294e43fd43f614a664e54050
   RCTDeprecation: a4c521821fab57cbb125b36effe84d897d0dfa12
   RCTRequired: 9f3a7e5645d4bc3f551593de7550bb66ab6e42bc
   RCTSwiftUI: 239ed2eb9e73de5a6f518810630f0c95e01c8702
@@ -2315,9 +2316,9 @@ SPEC CHECKSUMS:
   React-Mapbuffer: fec3e025f0ffba6b32cd2a1d7bbdee3e269aae90
   React-microtasksnativemodule: ab33a818d339f5a1da308893c11b487be66121a8
   React-mutationobservernativemodule: a42d1626651ccd7d0dc02a56e69d4ec77c248893
-  react-native-compressor: 41aba4798b2d072f2cf129bd76f2074931fcde39
+  react-native-compressor: 72a0e54fabb44e7f781e73c9f62afc1dbcefa51b
   react-native-image-picker: 16b96bec669da30b8f196145a1ed1ee565e60e69
-  react-native-image-resizer: c904f46cc02bb24a658974e87d4b31b625a70ff2
+  react-native-image-resizer: 529805dab6cb9c586d4c561b029ce29cb25bb2ab
   react-native-safe-area-context: 3d2fac6d8e7405ec6d9325ff13b4c9145fa466c4
   React-NativeModulesApple: deba264b03bd79c6bd61014fa30e40321b5e443a
   React-networking: 35e6070b084f435429f85c5db40b4d5b38652fe9
@@ -2356,6 +2357,6 @@ SPEC CHECKSUMS:
   RNScreens: eeca9fe79bacbb2de611b8d1baf20aa6e35c826b
   Yoga: 77dfa8673de2874e1855002ae59c68b8be9b007b
 
-PODFILE CHECKSUM: e7dedf6695774bd53d993b5ff7866644699fbe87
+PODFILE CHECKSUM: cbefb38e7a9360c57780fba6cd2c81be6fcda338
 
 COCOAPODS: 1.15.2

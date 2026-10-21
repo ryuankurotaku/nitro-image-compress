@@ -16,9 +16,9 @@ import {
  * Results include wall-clock timing via `performance.now()`.
  *
  * Libraries tested:
- * 1. **react-native-nitro-image-compressor** — JSI/Nitro (this library)
- * 2. **react-native-image-resizer** — Old bridge architecture
- * 3. **react-native-compressor** — Native bridge
+ * 1. **react-native-nitro-image-compressor** — JSI/Nitro (pure image specialist)
+ * 2. **react-native-image-resizer** — Legacy bridge architecture
+ * 3. **react-native-compressor** — Nitro Modules (v2)
  *
  * @param source - The source image to compress (from image picker)
  * @returns Array of benchmark results, one per library
@@ -113,10 +113,10 @@ const benchmarkImageResizer = async (uri: string): Promise<BenchmarkResult> => {
 };
 
 /**
- * Benchmarks react-native-compressor.
- * Uses native bridge with manual compression mode.
- * Output metadata is read via nitro's sync `getImageInfo` since this lib
- * doesn't return dimensions in its response.
+ * Benchmarks react-native-compressor (v2 Nitro).
+ * Uses Nitro Modules JSI with manual compression mode.
+ * Output metadata is read via nitro's sync `getImageInfo` since react-native-compressor
+ * returns only the output URI rather than dimensions/size in its response.
  */
 const benchmarkRNCompressor = async (uri: string): Promise<BenchmarkResult> => {
   try {

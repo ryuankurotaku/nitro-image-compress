@@ -2,46 +2,50 @@
   "name": "react-native-nitro-image-compressor",
   "version": "0.1.1",
   "description": "High-performance on-device image compression for React Native using Nitro Modules",
-  "main": "lib/commonjs/index",
-  "module": "lib/module/index",
+  "main": "lib/commonjs/index.js",
+  "module": "lib/module/index.js",
   "types": "lib/typescript/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
-  "workspaces": [
-    "example"
-  ],
   "files": [
     "src",
     "lib",
     "nitrogen",
-    "android/build.gradle",
-    "android/gradle.properties",
-    "android/src",
-    "ios/**/*.h",
-    "ios/**/*.m",
-    "ios/**/*.mm",
-    "ios/**/*.cpp",
-    "ios/**/*.swift",
+    "android",
+    "ios",
     "nitro.json",
     "*.podspec",
-    "README.md"
+    "README.md",
+    "!android/build",
+    "!android/.cxx"
   ],
   "scripts": {
     "build": "rm -rf tsconfig.tsbuildinfo && rm -rf lib && bun typecheck && bob build",
+    "codegen": "tsc && bun --bun nitrogen",
+    "specs": "bun run codegen",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf android/build node_modules/**/android/build lib",
-    "release": "release-it",
-    "typescript": "tsc",
-    "specs": "tsc && bun --bun nitro-codegen --log-level=\"debug\""
+    "release": "release-it"
   },
   "keywords": [
     "react-native",
     "nitro",
+    "nitro-modules",
+    "react-native-nitro-modules",
     "image",
+    "image-compressor",
+    "image-resizer",
     "compress",
+    "compression",
     "resize",
+    "thumbnail",
+    "photo-compression",
+    "camera",
+    "oom",
     "jsi",
     "performance",
+    "new-architecture",
+    "fabric",
     "webp",
     "jpeg"
   ],
@@ -61,16 +65,17 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.15",
-    "nitro-codegen": "^0.18.0",
+    "nitrogen": "^0.37.1",
     "react": "19.2.3",
     "react-native": "0.85.3",
-    "react-native-nitro-modules": "^0.18.0",
+    "react-native-builder-bob": "^0.41.0",
+    "react-native-nitro-modules": "^0.37.1",
     "typescript": "^5.5.0"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "react-native-nitro-modules": "*"
+    "react-native-nitro-modules": ">=0.35.0"
   },
   "react-native-builder-bob": {
     "source": "src",

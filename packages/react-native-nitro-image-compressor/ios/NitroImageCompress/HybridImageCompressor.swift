@@ -25,10 +25,8 @@ class HybridImageCompressor: HybridImageCompressorSpec {
 
   // MARK: - HybridObject Protocol
 
-  var hybridContext = margelo.nitro.HybridContext()
-
   /// Reports approximate memory usage of this instance to Nitro's GC.
-  var memorySize: Int { return getSizeOf(self) }
+  var memorySize: Int { return MemoryHelper.getSizeOf(self) }
 
   // MARK: - Shared Metal GPU Context & Storage Cache
 
@@ -61,7 +59,8 @@ class HybridImageCompressor: HybridImageCompressorSpec {
 
   // MARK: - Lifecycle & Warmup
 
-  public init() {
+  override public init() {
+    super.init()
     Self.warmup()
   }
 
