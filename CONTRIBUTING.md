@@ -27,8 +27,8 @@ react-native-nitro-image-compressor/
 ├── config/
 │   └── tsconfig.json                # Shared base TypeScript config (extended by all packages)
 ├── scripts/
-│   ├── release.sh                   # NPM publish + GitHub release automation
-│   └── try-install-lockfiles.sh     # Post-bump lockfile regeneration (non-fatal)
+│   ├── prepare-release.sh           # Automated Release PR creation (version bump + notes)
+│   └── release.sh                   # NPM publish + GitHub release automation
 ├── biome.json                       # Linter + formatter (replaces ESLint + Prettier)
 └── package.json                     # Root workspace orchestrator
 ```
@@ -106,6 +106,7 @@ TypeScript API  →  JSI Bindings (C++, auto-generated)  →  Native (Swift/Kotl
 
 - **`src/specs/ImageCompressor.nitro.ts`** defines the HybridObject interface.
 - **`nitro.json`** configures autolinking for Swift and Kotlin:
+
   ```json
   "autolinking": {
     "ImageCompressor": {
@@ -135,17 +136,11 @@ Both `tsconfig.json` and `tsconfig.build.json` extend:
 
 ### Release Process
 
-```bash
-bun run release          # Interactive — prompts for patch/minor/major
-bun run release -- patch # Auto patch bump
-```
-
-The release flow:
-1. `scripts/release.sh` is invoked
-2. Copies root `README.md` into the package (for npm page)
-3. Runs `release-it` inside the package (typecheck → build → npm publish)
-4. Cleans up the copied README
-5. Runs root `release-it` (git commit → tag → GitHub release → changelog)
+Releases follow an automated **Release PR** workflow:
+1. In GitHub Actions, navigate to **Prepare Release PR** and click **Run workflow** (select `patch`, `minor`, or `major`).
+2. The workflow runs `scripts/prepare-release.sh`, creates a branch `release/v<version>`, updates package manifests, and opens a Pull Request with commit notes.
+3. Once CI (`Lint, Typecheck & Build`) passes, merge the Pull Request into `main`.
+4. Merging automatically triggers **Publish Release to NPM**, which builds, publishes to NPM with OIDC provenance, and creates the GitHub release and tag.
 
 ### Adding a New Compression Format
 
@@ -177,4 +172,4 @@ docs: update API examples in README
 chore(deps): bump react-native-nitro-modules to 0.18.1
 ```
 
-These map to changelog sections automatically via `@release-it/conventional-changelog`.
+These are automatically formatted into release notes in the Release PR.

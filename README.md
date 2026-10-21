@@ -22,23 +22,23 @@ Most React Native compression libraries were either built for the legacy bridge 
 
 ## 📊 Head-to-Head Comparison
 
-| Feature | `react-native-nitro-image-compressor` | `react-native-compressor` (v2) | `react-native-image-resizer` |
-| :--- | :---: | :---: | :---: |
-| **Architecture** | **⚡ Nitro Modules (Direct JSI / C++)** | ⚡ Nitro Modules (JSI) | 🐌 Legacy Asynchronous Bridge |
-| **Package Focus** | **🎯 Pure Image Specialist** | 📦 Monolith (Image + Video + Audio) | 🖼️ Legacy Image Resizer |
-| **App Binary Overhead** | **🪶 Ultra-lightweight (native OS APIs)** | ⚠️ Heavy (bundled media libraries) | 🪶 Lightweight |
-| **Invocation Latency** | **⚡ Near-zero (<0.01ms)** | ⚡ Near-zero (<0.01ms) | ⏱️ High (JSON stringify overhead) |
-| **Synchronous Metadata** | **✅ `getImageInfo()` in ~0.3ms** | ❌ No (Async only, no sync info) | ❌ No |
-| **Complete Return Payload** | **✅ `{ uri, width, height, size }`** | ❌ Returns URI only (needs 2nd call) | ✅ Yes |
-| **EXIF Orientation** | **✅ Automatic rotation (iOS & Android)** | ✅ Yes | ⚠️ Inconsistent on Android |
-| **New Architecture Ready** | **✅ 100% Bridgeless / Fabric Ready** | ✅ Yes | ❌ Legacy architecture |
-| **Native Dependencies** | **✅ Zero 3rd-party libs (OS Native)** | ⚠️ Bundled multi-media engines | ❌ External wrappers |
+| Feature                     |   `react-native-nitro-image-compressor`   |    `react-native-compressor` (v2)    |   `react-native-image-resizer`    |
+| :-------------------------- | :---------------------------------------: | :----------------------------------: | :-------------------------------: |
+| **Architecture**            |  **⚡ Nitro Modules (Direct JSI / C++)**  |        ⚡ Nitro Modules (JSI)        |   🐌 Legacy Asynchronous Bridge   |
+| **Package Focus**           |       **🎯 Pure Image Specialist**        | 📦 Monolith (Image + Video + Audio)  |      🖼️ Legacy Image Resizer      |
+| **App Binary Overhead**     | **🪶 Ultra-lightweight (native OS APIs)** |  ⚠️ Heavy (bundled media libraries)  |          🪶 Lightweight           |
+| **Invocation Latency**      |        **⚡ Near-zero (<0.01ms)**         |        ⚡ Near-zero (<0.01ms)        | ⏱️ High (JSON stringify overhead) |
+| **Synchronous Metadata**    |     **✅ `getImageInfo()` in ~0.3ms**     |   ❌ No (Async only, no sync info)   |               ❌ No               |
+| **Complete Return Payload** |   **✅ `{ uri, width, height, size }`**   | ❌ Returns URI only (needs 2nd call) |              ✅ Yes               |
+| **EXIF Orientation**        | **✅ Automatic rotation (iOS & Android)** |                ✅ Yes                |    ⚠️ Inconsistent on Android     |
+| **New Architecture Ready**  |   **✅ 100% Bridgeless / Fabric Ready**   |                ✅ Yes                |      ❌ Legacy architecture       |
+| **Native Dependencies**     |  **✅ Zero 3rd-party libs (OS Native)**   |    ⚠️ Bundled multi-media engines    |       ❌ External wrappers        |
 
 ---
 
 ## 🧠 Deep Dive: How We Prevent Out-Of-Memory (OOM) Crashes
 
-Modern flagship phones (iPhone 14/15/16 Pro, Samsung Galaxy S23/S24/S25) shoot photos at **48MP to 200MP**. 
+Modern flagship phones (iPhone 14/15/16 Pro, Samsung Galaxy S23/S24/S25) shoot photos at **48MP to 200MP**.
 
 When decoded naively as an uncompressed 32-bit ARGB bitmap, a single 48MP photo demands **over 190 MB of contiguous RAM**:
 $$\text{48,000,000 pixels} \times 4 \text{ bytes (ARGB)} \approx 192\text{ MB RAM}$$
@@ -77,9 +77,9 @@ const result = await compress('file:///path/to/camera_photo.jpg', {
 });
 
 // 3. Receive all dimensions & file size in one atomic response
-console.log(result.uri);    // "file:///.../tmp/compressed_abc123.jpeg"
-console.log(result.size);   // 214000 bytes (~95% smaller!)
-console.log(result.width);  // 1920
+console.log(result.uri); // "file:///.../tmp/compressed_abc123.jpeg"
+console.log(result.size); // 214000 bytes (~95% smaller!)
+console.log(result.width); // 1920
 console.log(result.height); // 1080
 ```
 
@@ -172,12 +172,12 @@ async function compressGallerySelection(photoUris: string[]) {
       quality: 0.7,
       maxWidth: 1920,
       format: 'jpeg',
-    })
+    }),
   );
 
   // Native worker threads process compression in parallel
   const results = await Promise.all(tasks);
-  
+
   return results.map((r) => ({
     uri: r.uri,
     width: r.width,
@@ -219,6 +219,7 @@ await fetch('https://api.example.com/upload', {
 Compresses and optionally resizes an image asynchronously on a dedicated native worker thread.
 
 #### Parameters:
+
 - `uri` (`string`): The source image URI. Supports:
   - `file://...` file URIs
   - Absolute POSIX file paths (`/path/to/file.jpg`)
@@ -227,13 +228,13 @@ Compresses and optionally resizes an image asynchronously on a dedicated native 
 
 #### Options (`CompressOptions`):
 
-| Option | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `quality` | `number` | `0.7` | Compression quality from `0.0` (smallest file) to `1.0` (highest visual fidelity). Applies to `jpeg` and `webp`. |
-| `maxWidth` | `number` | `0` (none) | Maximum output width in pixels. Aspect ratio is preserved. |
-| `maxHeight` | `number` | `0` (none) | Maximum output height in pixels. Aspect ratio is preserved. |
-| `format` | `'jpeg' \| 'png' \| 'webp'` | `'jpeg'` | Target encoding format. |
-| `returnBase64` | `boolean` | `false` | When `true`, returns a base64 data URI instead of a file URI. |
+| Option         | Type                        | Default    | Description                                                                                                      |
+| :------------- | :-------------------------- | :--------- | :--------------------------------------------------------------------------------------------------------------- |
+| `quality`      | `number`                    | `0.7`      | Compression quality from `0.0` (smallest file) to `1.0` (highest visual fidelity). Applies to `jpeg` and `webp`. |
+| `maxWidth`     | `number`                    | `0` (none) | Maximum output width in pixels. Aspect ratio is preserved.                                                       |
+| `maxHeight`    | `number`                    | `0` (none) | Maximum output height in pixels. Aspect ratio is preserved.                                                      |
+| `format`       | `'jpeg' \| 'png' \| 'webp'` | `'jpeg'`   | Target encoding format.                                                                                          |
+| `returnBase64` | `boolean`                   | `false`    | When `true`, returns a base64 data URI instead of a file URI.                                                    |
 
 #### Returns (`Promise<CompressResult>`):
 
@@ -257,6 +258,7 @@ interface CompressResult {
 Reads image header metadata **synchronously** via JSI without decoding full pixel data into memory.
 
 #### Parameters:
+
 - `uri` (`string`): The source image URI (`file://`, `content://`, or POSIX path).
 
 #### Returns (`ImageInfo`):
@@ -278,11 +280,11 @@ interface ImageInfo {
 
 ## 🎨 Supported Formats
 
-| Format | Quality Configurable | Alpha Channel Support | Recommended Use Case |
-| :--- | :---: | :---: | :--- |
-| **JPEG** (`'jpeg'`) | Yes (`0.0`–`1.0`) | No | Camera photos, user uploads, general photography |
-| **PNG** (`'png'`) | No (lossless) | Yes | Screenshots, UI artwork, icons, logos |
-| **WebP** (`'webp'`) | Yes (`0.0`–`1.0`) | Yes | Modern mobile apps (25–35% smaller than JPEG at equal quality) |
+| Format              | Quality Configurable | Alpha Channel Support | Recommended Use Case                                           |
+| :------------------ | :------------------: | :-------------------: | :------------------------------------------------------------- |
+| **JPEG** (`'jpeg'`) |  Yes (`0.0`–`1.0`)   |          No           | Camera photos, user uploads, general photography               |
+| **PNG** (`'png'`)   |    No (lossless)     |          Yes          | Screenshots, UI artwork, icons, logos                          |
+| **WebP** (`'webp'`) |  Yes (`0.0`–`1.0`)   |          Yes          | Modern mobile apps (25–35% smaller than JPEG at equal quality) |
 
 ---
 
@@ -290,11 +292,11 @@ interface ImageInfo {
 
 Run the included [`example/`](./example) app to benchmark directly on your target test devices. The app contains a built-in **Compare** tab that runs all 3 major libraries sequentially on the same image with identical parameters (`quality: 0.7`, `maxWidth: 1920`, `maxHeight: 1080`):
 
-| Library | Architecture | Typical Duration (12MP Photo) | Relative Speed | Return Payload |
-| :--- | :--- | :---: | :---: | :---: |
-| **react-native-nitro-image-compressor** | **Nitro Modules (JSI - Pure Image Pipeline)** | **~15ms – 25ms** | **⚡ 1.0× (Baseline - Fastest)** | `{ uri, width, height, size }` |
-| `react-native-compressor` (v2) | Nitro Modules (JSI - Multi-Media) | ~25ms – 40ms | ⏱️ ~1.5× slower | `uri` only |
-| `react-native-image-resizer` | Classic Asynchronous Bridge | ~75ms – 120ms | 🐌 4.0× slower | `{ uri, width, height, size }` |
+| Library                                 | Architecture                                  | Typical Duration (12MP Photo) |          Relative Speed          |         Return Payload         |
+| :-------------------------------------- | :-------------------------------------------- | :---------------------------: | :------------------------------: | :----------------------------: |
+| **react-native-nitro-image-compressor** | **Nitro Modules (JSI - Pure Image Pipeline)** |       **~15ms – 25ms**        | **⚡ 1.0× (Baseline - Fastest)** | `{ uri, width, height, size }` |
+| `react-native-compressor` (v2)          | Nitro Modules (JSI - Multi-Media)             |         ~25ms – 40ms          |         ⏱️ ~1.5× slower          |           `uri` only           |
+| `react-native-image-resizer`            | Classic Asynchronous Bridge                   |         ~75ms – 120ms         |          🐌 4.0× slower          | `{ uri, width, height, size }` |
 
 ---
 
@@ -321,9 +323,11 @@ Run the included [`example/`](./example) app to benchmark directly on your targe
 ## ❓ Frequently Asked Questions (FAQ)
 
 ### 1. Does `compress()` overwrite my original photo?
+
 **No, never.** The library treats the input image as strictly read-only. It writes compressed outputs to unique files in the application's temporary cache directory. Your user's original camera photos and documents are never modified or overwritten.
 
 ### 2. Where are compressed output files stored?
+
 Compressed files are written to the platform's standard temporary cache directory:
 - **iOS**: `NSTemporaryDirectory()`
 - **Android**: `context.cacheDir`
@@ -331,9 +335,11 @@ Compressed files are written to the platform's standard temporary cache director
 These files are managed by the operating system and cleaned up when device storage requires it. If you need a file to persist permanently across app launches, copy it to your app's permanent documents folder.
 
 ### 3. Does it support Android Photo Picker (`content://` URIs)?
+
 **Yes.** Both `compress()` and `getImageInfo()` resolve `content://...` URIs directly through Android's `ContentResolver` stream APIs.
 
 ### 4. Why doesn't PNG compression reduce file size as much as JPEG?
+
 PNG is a lossless compression standard, so the `quality` parameter is ignored. To reduce PNG file sizes, specify `maxWidth` or `maxHeight` to downsample resolution, or convert to `'webp'`.
 
 ---
