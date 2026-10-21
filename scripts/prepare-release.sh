@@ -64,7 +64,7 @@ const fs = require('fs');
 bun install --no-save
 
 # 7. Commit changes
-git add package.json packages/react-native-nitro-image-compressor/package.json example/package.json bun.lock
+git add -A
 git commit -m "chore: prepare release v${NEXT_VERSION}"
 
 # 8. Push release branch to origin
