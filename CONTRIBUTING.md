@@ -106,6 +106,7 @@ TypeScript API  →  JSI Bindings (C++, auto-generated)  →  Native (Swift/Kotl
 
 - **`src/specs/ImageCompressor.nitro.ts`** defines the HybridObject interface.
 - **`nitro.json`** configures autolinking for Swift and Kotlin:
+
   ```json
   "autolinking": {
     "ImageCompressor": {
@@ -136,7 +137,6 @@ Both `tsconfig.json` and `tsconfig.build.json` extend:
 ### Release Process
 
 Releases follow an automated **Release PR** workflow:
-
 1. In GitHub Actions, navigate to **Prepare Release PR** and click **Run workflow** (select `patch`, `minor`, or `major`).
 2. The workflow runs `scripts/prepare-release.sh`, creates a branch `release/v<version>`, updates package manifests, and opens a Pull Request with commit notes.
 3. Once CI (`Lint, Typecheck & Build`) passes, merge the Pull Request into `main`.
